@@ -1,0 +1,101 @@
+/*
+Copyright (C) 2023-2026 QuantumNous
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU Affero General Public License as
+published by the Free Software Foundation, either version 3 of the
+License, or (at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU Affero General Public License for more details.
+
+You should have received a copy of the GNU Affero General Public License
+along with this program. If not, see <https://www.gnu.org/licenses/>.
+
+For commercial licensing, please contact support@quantumnous.com
+*/
+/*
+ * Site theme plugin — admin-configured background image + glass surfaces.
+ *
+ * `src/lib/site-theme.ts` sets the body attributes and the
+ * `--site-theme-background-image` variable from `/api/status`. Nothing here
+ * applies without those attributes, so the default dashboard is unchanged.
+ *
+ * Selectors deliberately use the `[class~='bg-*']` form: Tailwind's generated
+ * utility name is the project-wide contract for a surface token, and this file
+ * is unlayered, so it wins over the `@layer utilities` declarations without
+ * `!important`. Variant tokens such as `hover:bg-card` or `bg-card/50` are
+ * different classes and stay untouched.
+ */
+
+/* The image sits on the body behind every page. The overlay keeps contrast
+ * adequate for whichever image the administrator picks. */
+body[data-site-theme-background='true'] {
+  --site-theme-image-overlay: linear-gradient(
+    color-mix(in oklch, var(--background) 60%, transparent),
+    color-mix(in oklch, var(--background) 74%, transparent)
+  );
+  background-image:
+    var(--site-theme-image-overlay), var(--site-theme-background-image);
+  background-position: center;
+  background-size: cover;
+  background-attachment: fixed;
+  background-repeat: no-repeat;
+}
+
+/* The app shell paints opaque page surfaces over the body; let the image show
+ * through them while keeping cards and overlays glassy. */
+body[data-site-theme-background='true'] [data-slot='sidebar-inset'],
+body[data-site-theme-background='true'] [data-slot='public-layout'],
+body[data-site-theme-background='true'] [data-slot='section'],
+body[data-site-theme-background='true'] [data-slot='section-page-footer'] {
+  background-color: transparent;
+}
+
+body[data-site-theme-glass='true'] [class~='bg-card'] {
+  background-color: color-mix(in oklch, var(--card) 68%, transparent);
+}
+
+body[data-site-theme-glass='true'] [class~='bg-popover'] {
+  background-color: color-mix(in oklch, var(--popover) 78%, transparent);
+}
+
+body[data-site-theme-glass='true'] [class~='bg-sidebar'] {
+  background-color: color-mix(in oklch, var(--sidebar) 78%, transparent);
+}
+
+/* Blur only the large surfaces: the frost reads as glass without stacking a
+ * backdrop layer on every small element. */
+body[data-site-theme-glass='true'] [data-slot='card'],
+body[data-site-theme-glass='true'] [data-slot='sidebar-inner'],
+body[data-site-theme-glass='true'] [data-slot='dialog-content'],
+body[data-site-theme-glass='true'] [data-slot='alert-dialog-content'],
+body[data-site-theme-glass='true'] [data-slot='popover-content'],
+body[data-site-theme-glass='true'] [data-slot='dropdown-menu-content'],
+body[data-site-theme-glass='true'] [data-slot='select-content'],
+body[data-site-theme-glass='true'] [data-slot='command'],
+body[data-site-theme-glass='true'] [data-slot='sheet-content'] {
+  -webkit-backdrop-filter: blur(18px) saturate(1.4);
+  backdrop-filter: blur(18px) saturate(1.4);
+}
+
+@media (prefers-reduced-transparency: reduce) {
+  body[data-site-theme-glass='true'] [class~='bg-card'] {
+    background-color: var(--card);
+  }
+
+  body[data-site-theme-glass='true'] [class~='bg-popover'] {
+    background-color: var(--popover);
+  }
+
+  body[data-site-theme-glass='true'] [class~='bg-sidebar'] {
+    background-color: var(--sidebar);
+  }
+
+  body[data-site-theme-glass='true'] [data-slot] {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}

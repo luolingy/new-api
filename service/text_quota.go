@@ -548,4 +548,6 @@ func PostTextConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, us
 		Other:            other,
 	})
 	relayInfo.PerformanceOutputTokens = int64(summary.CompletionTokens)
+	// 每令牌 TPM 限制：把本次实际消耗的 token 计入该令牌的当前窗口
+	RecordTokenUsage(ctx, relayInfo.TokenId, summary.PromptTokens, summary.CompletionTokens)
 }

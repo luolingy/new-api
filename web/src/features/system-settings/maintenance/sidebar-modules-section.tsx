@@ -96,6 +96,10 @@ export function SidebarModulesSection({
         title: t('Chat'),
         description: t('Access previous conversations and start new ones.'),
       },
+      image: {
+        title: t('Image Playground'),
+        description: t('Generate images on the server, even when offline.'),
+      },
     },
     console: {
       detail: {

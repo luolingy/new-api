@@ -26,6 +26,7 @@ import { applyFaviconToDom } from '@/lib/dom-utils'
 import '@/lib/dayjs'
 import { initializeFrontendCache } from '@/lib/frontend-cache'
 import { createAppQueryClient } from '@/lib/query-client'
+import { applySiteThemeFromStatus } from '@/lib/site-theme'
 import { readCachedStatus, statusQueryOptions } from '@/lib/status-query'
 
 import { DirectionProvider } from './context/direction-provider'
@@ -82,6 +83,9 @@ if (!rootElement) {
     const cached = readCachedStatus()
     if (cached?.system_name) apply(cached.system_name as string)
     if (cached?.logo) applyFaviconToDom(cached.logo as string)
+    // Apply the cached site theme before React mounts so the first paint
+    // already has the administrator's background image and glass surfaces.
+    applySiteThemeFromStatus(cached)
 
     // Background refresh through the shared cache. This primes ['status']
     // before React mounts, so the root guard and every status consumer reuse

@@ -214,6 +214,8 @@ twofa.code_invalid: "驗證碼或備用碼不正確"
 # Rate limit messages
 rate_limit.reached: "您已達到請求數限制：{{.Minutes}}分鐘內最多請求{{.Max}}次"
 rate_limit.total_reached: "您已達到總請求數限制：{{.Minutes}}分鐘內最多請求{{.Max}}次，包括失敗次數"
+rate_limit.token_reached: "令牌速率限制：每分鐘最多請求 {{.Requests}} 次、消耗 {{.Tokens}} 個 token，請 {{.RetryAfter}} 秒後重試"
+rate_limit.token_negative: "速率限制不能為負數"
 
 # Setting messages
 setting.invalid_type: "無效的預警類型"

@@ -518,6 +518,7 @@ func buildSelfUserData(user *model.User) map[string]any {
 		"setting":           user.Setting,
 		"stripe_customer":   user.StripeCustomer,
 		"sidebar_modules":   userSetting.SidebarModules, // 正确提取sidebar_modules字段
+		"avatar_url":        userSetting.AvatarURL,
 		"permissions":       permissions,
 	}
 }
@@ -1430,6 +1431,8 @@ func UpdateUserSetting(c *gin.Context) {
 		UpstreamModelUpdateNotifyEnabled: upstreamModelUpdateNotifyEnabled,
 		AcceptUnsetRatioModel:            req.AcceptUnsetModelRatioModel,
 		RecordIpLog:                      req.RecordIpLog,
+		// 头像由独立的头像接口维护，通知设置保存时不能把它清空。
+		AvatarURL: existingSettings.AvatarURL,
 	}
 
 	// 如果是webhook类型,添加webhook相关设置

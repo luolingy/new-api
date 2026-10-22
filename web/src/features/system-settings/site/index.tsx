@@ -38,6 +38,22 @@ const defaultSiteSettings: SiteSettings = {
   'legal.privacy_policy': '',
   HeaderNavModules: '',
   SidebarModulesAdmin: '',
+  'theme.background_image': '',
+  'theme.glass_cards': true,
+  's3.enabled': false,
+  's3.endpoint': '',
+  's3.public_base_url': '',
+  's3.region': 'us-east-1',
+  's3.bucket': '',
+  's3.path_prefix': 'avatars',
+  's3.force_path_style': true,
+  's3.accessKey': '',
+  's3.secretKey': '',
+  'image_playground.enabled': true,
+  'image_playground.models': '',
+  'image_playground.max_reference_images': 4,
+  'image_playground.max_images_per_task': 4,
+  'image_playground.retention_days': 7,
 }
 
 export function SiteSettings() {

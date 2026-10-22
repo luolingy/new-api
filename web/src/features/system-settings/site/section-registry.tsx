@@ -28,6 +28,9 @@ import { NoticeSection } from '../maintenance/notice-section'
 import { SidebarModulesSection } from '../maintenance/sidebar-modules-section'
 import type { SiteSettings } from '../types'
 import { createSectionRegistry } from '../utils/section-registry'
+import { ImagePlaygroundSection } from './image-playground-section'
+import { S3StorageSection } from './s3-storage-section'
+import { SiteThemeSection } from './site-theme-section'
 
 const SITE_SECTIONS = [
   {
@@ -51,6 +54,44 @@ const SITE_SECTIONS = [
             privacy_policy: settings['legal.privacy_policy'],
           },
         }}
+      />
+    ),
+  },
+  {
+    id: 'theme',
+    titleKey: 'Site Theme',
+    build: (settings: SiteSettings) => (
+      <SiteThemeSection
+        backgroundImage={settings['theme.background_image']}
+        glassCards={settings['theme.glass_cards']}
+      />
+    ),
+  },
+  {
+    id: 'storage',
+    titleKey: 'Object Storage',
+    build: (settings: SiteSettings) => (
+      <S3StorageSection
+        enabled={settings['s3.enabled']}
+        endpoint={settings['s3.endpoint']}
+        publicBaseUrl={settings['s3.public_base_url']}
+        region={settings['s3.region']}
+        bucket={settings['s3.bucket']}
+        pathPrefix={settings['s3.path_prefix']}
+        forcePathStyle={settings['s3.force_path_style']}
+      />
+    ),
+  },
+  {
+    id: 'image-playground',
+    titleKey: 'Image Playground',
+    build: (settings: SiteSettings) => (
+      <ImagePlaygroundSection
+        enabled={settings['image_playground.enabled']}
+        maxImagesPerTask={settings['image_playground.max_images_per_task']}
+        maxReferenceImages={settings['image_playground.max_reference_images']}
+        models={settings['image_playground.models']}
+        retentionDays={settings['image_playground.retention_days']}
       />
     ),
   },

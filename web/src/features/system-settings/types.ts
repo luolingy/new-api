@@ -154,6 +154,22 @@ export type SiteSettings = {
   'legal.privacy_policy': string
   HeaderNavModules: string
   SidebarModulesAdmin: string
+  'theme.background_image': string
+  'theme.glass_cards': boolean
+  's3.enabled': boolean
+  's3.endpoint': string
+  's3.public_base_url': string
+  's3.region': string
+  's3.bucket': string
+  's3.path_prefix': string
+  's3.force_path_style': boolean
+  's3.accessKey': string
+  's3.secretKey': string
+  'image_playground.enabled': boolean
+  'image_playground.models': string
+  'image_playground.max_reference_images': number
+  'image_playground.max_images_per_task': number
+  'image_playground.retention_days': number
 }
 
 export type AuthSettings = {

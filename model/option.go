@@ -11,10 +11,13 @@ import (
 	"github.com/QuantumNous/new-api/pkg/jsplugin"
 	"github.com/QuantumNous/new-api/setting"
 	"github.com/QuantumNous/new-api/setting/config"
+	"github.com/QuantumNous/new-api/setting/image_playground_setting"
 	"github.com/QuantumNous/new-api/setting/operation_setting"
 	"github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
+	"github.com/QuantumNous/new-api/setting/s3_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
+	"github.com/QuantumNous/new-api/setting/theme_setting"
 	"gorm.io/gorm"
 )
 
@@ -242,6 +245,29 @@ func validateOptionValue(key string, value string) error {
 	}
 	if key == "MaxTokenAutoGroups" {
 		return setting.ValidateMaxTokenAutoGroups(value)
+	}
+	if key == "theme.background_image" {
+		return theme_setting.ValidateBackgroundImageURL(value)
+	}
+	switch key {
+	case "s3.endpoint":
+		return s3_setting.ValidateEndpoint(value)
+	case "s3.public_base_url":
+		return s3_setting.ValidatePublicBaseURL(value)
+	case "s3.bucket":
+		return s3_setting.ValidateBucket(value)
+	case "s3.region":
+		return s3_setting.ValidateRegion(value)
+	case "s3.path_prefix":
+		return s3_setting.ValidatePathPrefix(value)
+	case "image_playground.models":
+		return image_playground_setting.ValidateModels(value)
+	case "image_playground.max_reference_images":
+		return image_playground_setting.ValidateMaxReferenceImages(value)
+	case "image_playground.max_images_per_task":
+		return image_playground_setting.ValidateMaxImagesPerTask(value)
+	case "image_playground.retention_days":
+		return image_playground_setting.ValidateRetentionDays(value)
 	}
 	return nil
 }

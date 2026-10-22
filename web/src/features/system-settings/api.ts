@@ -44,6 +44,13 @@ export async function updateSystemOption(request: UpdateOptionRequest) {
   return res.data
 }
 
+export async function testS3Connection() {
+  const res = await api.post<{ success: boolean; message?: string }>(
+    '/api/option/s3/test'
+  )
+  return res.data
+}
+
 export async function updatePasskeyDomains(
   request: UpdatePasskeyDomainsRequest
 ) {

@@ -323,6 +323,10 @@ func AddToken(c *gin.Context) {
 		token.CrossGroupRetry = false
 		_ = token.SetAutoGroups(nil)
 	}
+	if token.RpmLimit < 0 || token.TpmLimit < 0 {
+		common.ApiErrorI18n(c, i18n.MsgTokenRateLimitNegative)
+		return
+	}
 	key, err := common.GenerateKey()
 	if err != nil {
 		common.ApiErrorI18n(c, i18n.MsgTokenGenerateFailed)
@@ -344,6 +348,8 @@ func AddToken(c *gin.Context) {
 		Group:              token.Group,
 		CrossGroupRetry:    token.CrossGroupRetry,
 		AutoGroups:         token.AutoGroups,
+		RpmLimit:           token.RpmLimit,
+		TpmLimit:           token.TpmLimit,
 	}
 	err = cleanToken.Insert()
 	if err != nil {
@@ -439,6 +445,12 @@ func UpdateToken(c *gin.Context) {
 		cleanToken.AllowIps = token.AllowIps
 		cleanToken.Group = token.Group
 		cleanToken.CrossGroupRetry = token.CrossGroupRetry
+		if token.RpmLimit < 0 || token.TpmLimit < 0 {
+			common.ApiErrorI18n(c, i18n.MsgTokenRateLimitNegative)
+			return
+		}
+		cleanToken.RpmLimit = token.RpmLimit
+		cleanToken.TpmLimit = token.TpmLimit
 		if token.Group != "auto" {
 			cleanToken.CrossGroupRetry = false
 			_ = cleanToken.SetAutoGroups(nil)
@@ -473,6 +485,8 @@ func UpdateToken(c *gin.Context) {
 			{"group", previous.Group != cleanToken.Group},
 			{"cross_group_retry", previous.CrossGroupRetry != cleanToken.CrossGroupRetry},
 			{"auto_groups", previous.AutoGroups != cleanToken.AutoGroups},
+			{"rpm_limit", previous.RpmLimit != cleanToken.RpmLimit},
+			{"tpm_limit", previous.TpmLimit != cleanToken.TpmLimit},
 		} {
 			if field.changed {
 				changedFields = append(changedFields, field.name)

@@ -37,6 +37,8 @@ export interface ApiResponse<T = unknown> {
 export interface UserProfile {
   has_password?: boolean
   permissions?: UserPermissions
+  /** Avatar URL (S3 or OAuth provider picture) */
+  avatar_url?: string
   /** User ID */
   id: number
   /** Username */

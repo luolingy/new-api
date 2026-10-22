@@ -100,6 +100,8 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.GET("/self", controller.GetSelf)
 				selfRoute.GET("/models", controller.GetUserModels)
 				selfRoute.PUT("/self", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UpdateSelf)
+				selfRoute.POST("/avatar", middleware.CriticalRateLimit(), middleware.DisableCache(), controller.UploadUserAvatar)
+				selfRoute.DELETE("/avatar", middleware.DisableCache(), controller.DeleteUserAvatar)
 				selfRoute.DELETE("/self", middleware.DisableCache(), controller.DeleteSelf)
 				accessTokenRoute := selfRoute.Group("/access_tokens")
 				accessTokenRoute.Use(middleware.DisableCache())
@@ -170,7 +172,24 @@ func SetApiRouter(router *gin.Engine) {
 				// Admin 2FA routes
 				adminRoute.GET("/2fa/stats", controller.Admin2FAStats)
 				adminRoute.DELETE("/:id/2fa", controller.AdminDisable2FA)
+
+				// Offline image playground access control
+				adminRoute.GET("/:id/image-playground", controller.AdminGetImagePlaygroundAccess)
+				adminRoute.PUT("/:id/image-playground", controller.AdminSetImagePlaygroundAccess)
 			}
+		}
+
+		// Offline image playground (server-side image generation tasks)
+		imagePlaygroundRoute := apiRouter.Group("/image-playground")
+		imagePlaygroundRoute.Use(middleware.UserAuth())
+		{
+			imagePlaygroundRoute.GET("/config", controller.GetImagePlaygroundConfig)
+			imagePlaygroundRoute.GET("/tasks", controller.ListImagePlaygroundTasks)
+			imagePlaygroundRoute.POST("/tasks", controller.CreateImagePlaygroundTask)
+			imagePlaygroundRoute.GET("/tasks/:task_id", controller.GetImagePlaygroundTask)
+			imagePlaygroundRoute.DELETE("/tasks/:task_id", controller.DeleteImagePlaygroundTask)
+			imagePlaygroundRoute.GET("/tasks/:task_id/assets/:index", controller.ServeImagePlaygroundAsset)
+			imagePlaygroundRoute.GET("/tasks/:task_id/partial", controller.ServeImagePlaygroundPartial)
 		}
 
 		// Subscription billing (plans, purchase, admin management)
@@ -216,6 +235,7 @@ func SetApiRouter(router *gin.Engine) {
 			optionRoute.GET("/request_policy", controller.GetRequestPolicy)
 			optionRoute.PATCH("/request_policy", controller.UpdateRequestPolicy)
 			optionRoute.PUT("/", controller.UpdateOption)
+			optionRoute.POST("/s3/test", controller.TestS3Connection)
 			optionRoute.PUT("/passkey/domains", controller.UpdatePasskeyDomains)
 			optionRoute.GET("/model_pricing", controller.GetModelPricingConfig)
 			optionRoute.PATCH("/model_pricing", controller.UpdateModelPricingConfig)

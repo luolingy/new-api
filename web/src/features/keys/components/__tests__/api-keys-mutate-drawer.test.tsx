@@ -151,7 +151,9 @@ function findButton(text: string, required = true): HTMLButtonElement | null {
   return button ?? null
 }
 
-function getControlByLabel(labelText: 'Name' | 'Quantity'): HTMLInputElement
+function getControlByLabel(
+  labelText: 'Name' | 'Quantity' | 'Requests per minute' | 'Tokens per minute'
+): HTMLInputElement
 function getControlByLabel(labelText: 'Group'): HTMLButtonElement
 function getControlByLabel(labelText: 'Auto group order'): HTMLElement
 function getControlByLabel(labelText: string): HTMLElement {
@@ -276,5 +278,42 @@ describe('API keys mutate drawer Auto group integration', () => {
     fireEvent.click(findButton('Save changes', true))
     await waitFor(() => expect(createdPayloads).toHaveLength(1))
     expect(createdPayloads[0]?.auto_groups).toEqual(['vip'])
+  })
+})
+
+describe('API keys mutate drawer rate limits', () => {
+  test('defaults rpm/tpm limits to 0 (unlimited) and forwards them on create', async () => {
+    const createdPayloads: Array<Record<string, unknown>> = []
+    installApiFixtures(createdPayloads)
+    await renderCreateDrawer()
+
+    const rpmInput = getControlByLabel(
+      'Requests per minute'
+    ) as HTMLInputElement
+    const tpmInput = getControlByLabel('Tokens per minute') as HTMLInputElement
+    expect(rpmInput.value).toBe('0')
+    expect(tpmInput.value).toBe('0')
+
+    changeInput(getControlByLabel('Name'), 'limited')
+    fireEvent.click(findButton('Save changes', true))
+    await waitFor(() => expect(createdPayloads).toHaveLength(1))
+
+    expect(createdPayloads[0]?.rpm_limit).toBe(0)
+    expect(createdPayloads[0]?.tpm_limit).toBe(0)
+  })
+
+  test('sends configured per-minute request and token limits', async () => {
+    const createdPayloads: Array<Record<string, unknown>> = []
+    installApiFixtures(createdPayloads)
+    await renderCreateDrawer()
+
+    changeInput(getControlByLabel('Requests per minute'), '120')
+    changeInput(getControlByLabel('Tokens per minute'), '50000')
+    changeInput(getControlByLabel('Name'), 'limited')
+    fireEvent.click(findButton('Save changes', true))
+    await waitFor(() => expect(createdPayloads).toHaveLength(1))
+
+    expect(createdPayloads[0]?.rpm_limit).toBe(120)
+    expect(createdPayloads[0]?.tpm_limit).toBe(50000)
   })
 })

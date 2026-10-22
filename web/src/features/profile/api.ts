@@ -46,6 +46,26 @@ export async function getUserProfile(): Promise<ApiResponse<UserProfile>> {
 }
 
 /**
+ * Upload a cropped avatar. The server enforces the 1 MB limit again.
+ */
+export async function uploadUserAvatar(
+  file: Blob
+): Promise<ApiResponse<{ avatar_url: string }>> {
+  const formData = new FormData()
+  formData.append('file', file, 'avatar.jpg')
+  const res = await api.post('/api/user/avatar', formData)
+  return res.data
+}
+
+/**
+ * Remove the current user's avatar.
+ */
+export async function deleteUserAvatar(): Promise<ApiResponse> {
+  const res = await api.delete('/api/user/avatar')
+  return res.data
+}
+
+/**
  * Update user profile
  */
 export async function updateUserProfile(

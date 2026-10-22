@@ -154,6 +154,9 @@ func (p *OIDCProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*OAu
 		Username:       oidcUser.PreferredUsername,
 		DisplayName:    oidcUser.Name,
 		Email:          oidcUser.Email,
+		Extra: map[string]any{
+			"avatar_url": oidcUser.Picture,
+		},
 	}, nil
 }
 

@@ -20,6 +20,7 @@ import { queryOptions, type QueryClient } from '@tanstack/react-query'
 
 import { getStatus } from '@/lib/api'
 import { DEFAULT_SYSTEM_NAME, DEFAULT_LOGO } from '@/lib/constants'
+import { applySiteThemeFromStatus } from '@/lib/site-theme'
 import {
   useSystemConfigStore,
   type CurrencyConfig,
@@ -143,6 +144,9 @@ async function fetchStatus(): Promise<StatusData | null> {
         console.warn('[status] Failed to sync status to system config', err)
       }
     }
+    // The site theme is a body-level presentation side effect, so it runs
+    // alongside the config sync instead of requiring a provider component.
+    applySiteThemeFromStatus(status)
     writeCachedStatus(status)
   }
 

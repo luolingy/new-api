@@ -26,12 +26,13 @@ func init() {
 type LinuxDOProvider struct{}
 
 type linuxdoUser struct {
-	Id         int    `json:"id"`
-	Username   string `json:"username"`
-	Name       string `json:"name"`
-	Active     bool   `json:"active"`
-	TrustLevel int    `json:"trust_level"`
-	Silenced   bool   `json:"silenced"`
+	Id             int    `json:"id"`
+	Username       string `json:"username"`
+	Name           string `json:"name"`
+	Active         bool   `json:"active"`
+	TrustLevel     int    `json:"trust_level"`
+	Silenced       bool   `json:"silenced"`
+	AvatarTemplate string `json:"avatar_template"`
 }
 
 func (p *LinuxDOProvider) GetName() string {
@@ -161,8 +162,25 @@ func (p *LinuxDOProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*
 			"trust_level": linuxdoUser.TrustLevel,
 			"active":      linuxdoUser.Active,
 			"silenced":    linuxdoUser.Silenced,
+			"avatar_url":  linuxdoAvatarURL(linuxdoUser.AvatarTemplate),
 		},
 	}, nil
+}
+
+// linuxdoAvatarURL expands the Discourse avatar template returned by Linux DO.
+func linuxdoAvatarURL(template string) string {
+	template = strings.TrimSpace(template)
+	if template == "" {
+		return ""
+	}
+	template = strings.ReplaceAll(template, "{size}", "128")
+	if strings.HasPrefix(template, "http://") || strings.HasPrefix(template, "https://") {
+		return template
+	}
+	if !strings.HasPrefix(template, "/") {
+		template = "/" + template
+	}
+	return "https://linux.do" + template
 }
 
 func (p *LinuxDOProvider) IsUserIDTaken(providerUserID string) bool {

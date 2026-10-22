@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"slices"
+	"strconv"
 	"strings"
 	"time"
 
@@ -39,6 +40,21 @@ func Distribute() func(c *gin.Context) {
 				service.RecordRequestPolicyTermination(c, types.NewErrorWithStatusCode(errors.New("request rejected"), types.ErrorCodeInvalidRequest, c.Writer.Status(), types.ErrOptionWithSkipRetry()))
 			}
 		}()
+		// 每令牌 RPM/TPM 限制：仅在 TokenAuth 已设置 token_id 时生效
+		//（/pg 等 UserAuth 路径 token_id 为 0，自动放行）。
+		tokenId := common.GetContextKeyInt(c, constant.ContextKeyTokenId)
+		if tokenId != 0 {
+			allowed, retryAfter := service.TokenRateLimitPass(c, tokenId, c.GetInt("token_rpm_limit"), c.GetInt("token_tpm_limit"))
+			if !allowed {
+				c.Header("Retry-After", strconv.FormatInt(retryAfter, 10))
+				abortWithOpenAiMessage(c, http.StatusTooManyRequests, i18n.T(c, i18n.MsgTokenRateLimitReached, map[string]any{
+					"Requests":   c.GetInt("token_rpm_limit"),
+					"Tokens":     c.GetInt("token_tpm_limit"),
+					"RetryAfter": retryAfter,
+				}))
+				return
+			}
+		}
 		constraints := service.GetChannelConstraints(c)
 		constraints.AddFilter(taskdto.ChannelFilter{
 			Kind:        taskdto.FilterRequestPath,

@@ -158,6 +158,10 @@ func main() {
 	controller.RegisterScheduledSystemTasks()
 	service.StartSystemTaskRunner()
 
+	// Offline image playground: run queued generation tasks on the server so a
+	// client can disconnect (or go offline) while the image is generated.
+	service.StartImagePlaygroundWorker()
+
 	if os.Getenv("BATCH_UPDATE_ENABLED") == "true" {
 		common.BatchUpdateEnabled = true
 		common.SysLog("batch update enabled with interval " + strconv.Itoa(common.BatchUpdateInterval) + "s")

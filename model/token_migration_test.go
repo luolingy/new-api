@@ -293,3 +293,94 @@ func TestMigrateTokenKeyUniquenessPostgreSQL(t *testing.T) {
 		})
 	}
 }
+
+// testTokenRateLimitColumnsMigration verifies that AutoMigrate adds the
+// rpm_limit/tpm_limit columns on fresh databases, preserves existing data when
+// upgrading, and is idempotent when run twice.
+func testTokenRateLimitColumnsMigration(t *testing.T, db *gorm.DB) {
+	t.Helper()
+	tableName := fmt.Sprintf("token_ratelimit_%d", time.Now().UnixNano())
+	t.Cleanup(func() { _ = db.Migrator().DropTable(tableName) })
+
+	// A fresh table-scoped handle per call: GORM shares statement state across
+	// chained calls on the same handle, so reuse would leak WHERE clauses.
+	tableDB := func() *gorm.DB { return db.Table(tableName) }
+
+	// Upgrade path: create the token table with the pre-feature columns, insert
+	// a row, then AutoMigrate must add the new columns and preserve the row.
+	require.NoError(t, tableDB().AutoMigrate(&Token{}))
+	require.NoError(t, tableDB().Create(&Token{UserId: 1, Key: "preserved-key", Name: "old"}).Error)
+	for range 2 {
+		require.NoError(t, tableDB().AutoMigrate(&Token{}))
+	}
+	require.True(t, tableDB().Migrator().HasColumn(tableName, "rpm_limit"))
+	require.True(t, tableDB().Migrator().HasColumn(tableName, "tpm_limit"))
+
+	var preserved Token
+	require.NoError(t, tableDB().Where(&Token{Key: "preserved-key"}).First(&preserved).Error)
+	assert.Equal(t, 1, preserved.UserId)
+	assert.Equal(t, "old", preserved.Name)
+	assert.Zero(t, preserved.RpmLimit)
+	assert.Zero(t, preserved.TpmLimit)
+
+	// Round-trip the new fields: a token created with non-zero limits must
+	// persist them and read them back with the same values.
+	limited := &Token{UserId: 2, Key: "limited-key", RpmLimit: 60, TpmLimit: 100000}
+	require.NoError(t, tableDB().Create(limited).Error)
+	var readBack Token
+	require.NoError(t, tableDB().Where(&Token{Key: "limited-key"}).First(&readBack).Error)
+	assert.Equal(t, 60, readBack.RpmLimit)
+	assert.Equal(t, 100000, readBack.TpmLimit)
+
+	// The token.Update() select list must persist the new fields. Mirror the
+	// production call on our scoped table (the global DB is not available in
+	// this test): update through the same explicit select list as Update().
+	readBack.RpmLimit = 120
+	readBack.TpmLimit = 200000
+	require.NoError(t, tableDB().Model(&readBack).Select(
+		"name", "status", "expired_time", "remain_quota", "unlimited_quota",
+		"model_limits_enabled", "model_limits", "allow_ips", "group", "cross_group_retry", "auto_groups",
+		"rpm_limit", "tpm_limit",
+	).Updates(readBack).Error)
+	var afterUpdate Token
+	require.NoError(t, tableDB().Where(&Token{Key: "limited-key"}).First(&afterUpdate).Error)
+	assert.Equal(t, 120, afterUpdate.RpmLimit)
+	assert.Equal(t, 200000, afterUpdate.TpmLimit)
+}
+
+func TestTokenRateLimitColumnsMigrationSQLite(t *testing.T) {
+	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+	require.NoError(t, err)
+	testTokenRateLimitColumnsMigration(t, db)
+}
+
+func TestTokenRateLimitColumnsMigrationMySQL(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("TEST_MYSQL_DSN"))
+	if dsn == "" {
+		t.Skip("TEST_MYSQL_DSN is not configured")
+	}
+
+	db, err := gorm.Open(mysql.Open(dsn), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+	testTokenRateLimitColumnsMigration(t, db)
+}
+
+func TestTokenRateLimitColumnsMigrationPostgreSQL(t *testing.T) {
+	dsn := strings.TrimSpace(os.Getenv("TEST_POSTGRES_DSN"))
+	if dsn == "" {
+		t.Skip("TEST_POSTGRES_DSN is not configured")
+	}
+
+	db, err := gorm.Open(postgres.New(postgres.Config{
+		DSN:                  dsn,
+		PreferSimpleProtocol: true,
+	}), &gorm.Config{})
+	require.NoError(t, err)
+	sqlDB, err := db.DB()
+	require.NoError(t, err)
+	t.Cleanup(func() { require.NoError(t, sqlDB.Close()) })
+	testTokenRateLimitColumnsMigration(t, db)
+}

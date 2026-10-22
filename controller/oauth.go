@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"net/url"
 	"slices"
 	"strconv"
 	"strings"
@@ -349,8 +350,36 @@ func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.
 		return
 	}
 
+	// An OAuth profile picture is only a default: users who already picked or
+	// uploaded an avatar keep it.
+	if avatarURL := oauthAvatarURL(oauthUser); avatarURL != "" {
+		if err := model.EnsureUserAvatar(user.Id, avatarURL); err != nil {
+			common.SysLog("failed to seed OAuth avatar: " + err.Error())
+		}
+	}
+
 	// 9. Setup login
 	setupLogin(user, migration, c)
+}
+
+// oauthAvatarURL extracts and validates the avatar URL a provider returned.
+func oauthAvatarURL(oauthUser *oauth.OAuthUser) string {
+	if oauthUser == nil || oauthUser.Extra == nil {
+		return ""
+	}
+	raw, _ := oauthUser.Extra["avatar_url"].(string)
+	raw = strings.TrimSpace(raw)
+	if raw == "" || len(raw) > 2048 {
+		return ""
+	}
+	parsed, err := url.Parse(raw)
+	if err != nil || parsed.Host == "" {
+		return ""
+	}
+	if parsed.Scheme != "http" && parsed.Scheme != "https" {
+		return ""
+	}
+	return raw
 }
 
 // handleOAuthBind handles binding OAuth account to existing user

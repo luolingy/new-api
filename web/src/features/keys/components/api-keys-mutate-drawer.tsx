@@ -18,7 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronDown, KeyRound, Settings2, WalletCards } from 'lucide-react'
+import {
+  ChevronDown,
+  Gauge,
+  KeyRound,
+  Settings2,
+  WalletCards,
+} from 'lucide-react'
 import { useEffect, useMemo, useState } from 'react'
 import { useForm, type SubmitErrorHandler } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
@@ -668,6 +674,77 @@ export function ApiKeysMutateDrawer({
                   </FormItem>
                 )}
               />
+            </SideDrawerSection>
+
+            <SideDrawerSection>
+              <SideDrawerSectionHeader
+                title={t('Rate Limits')}
+                description={t('Per-minute limits for this API key')}
+                icon={<Gauge className='size-4' />}
+                iconTone='warning'
+              />
+              <div className='grid grid-cols-2 gap-3'>
+                <FormField
+                  control={form.control}
+                  name='rpm_limit'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Requests per minute')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type='number'
+                          min={0}
+                          step={1}
+                          placeholder='0'
+                          aria-label={t('Requests per minute')}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ''
+                                ? ''
+                                : Number.parseInt(e.target.value, 10) || 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription className='text-xs'>
+                        {t('Maximum requests per minute, 0 = unlimited')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+                <FormField
+                  control={form.control}
+                  name='tpm_limit'
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormLabel>{t('Tokens per minute')}</FormLabel>
+                      <FormControl>
+                        <Input
+                          {...field}
+                          type='number'
+                          min={0}
+                          step={1}
+                          placeholder='0'
+                          aria-label={t('Tokens per minute')}
+                          onChange={(e) =>
+                            field.onChange(
+                              e.target.value === ''
+                                ? ''
+                                : Number.parseInt(e.target.value, 10) || 0
+                            )
+                          }
+                        />
+                      </FormControl>
+                      <FormDescription className='text-xs'>
+                        {t('Maximum tokens per minute, 0 = unlimited')}
+                      </FormDescription>
+                      <FormMessage />
+                    </FormItem>
+                  )}
+                />
+              </div>
             </SideDrawerSection>
 
             <Collapsible open={advancedOpen} onOpenChange={setAdvancedOpen}>

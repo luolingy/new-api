@@ -33,9 +33,10 @@ type discordOAuthResponse struct {
 }
 
 type discordUser struct {
-	UID  string `json:"id"`
-	ID   string `json:"username"`
-	Name string `json:"global_name"`
+	UID    string `json:"id"`
+	ID     string `json:"username"`
+	Name   string `json:"global_name"`
+	Avatar string `json:"avatar"`
 }
 
 func (p *DiscordProvider) GetName() string {
@@ -149,7 +150,23 @@ func (p *DiscordProvider) GetUserInfo(ctx context.Context, token *OAuthToken) (*
 		ProviderUserID: discordUser.UID,
 		Username:       discordUser.ID,
 		DisplayName:    discordUser.Name,
+		Extra: map[string]any{
+			"avatar_url": discordAvatarURL(discordUser.UID, discordUser.Avatar),
+		},
 	}, nil
+}
+
+// discordAvatarURL builds the CDN address for the profile picture. Discord only
+// returns the hash, and animated avatars keep their a_ prefix.
+func discordAvatarURL(userID, hash string) string {
+	if userID == "" || hash == "" {
+		return ""
+	}
+	ext := "png"
+	if strings.HasPrefix(hash, "a_") {
+		ext = "gif"
+	}
+	return "https://cdn.discordapp.com/avatars/" + userID + "/" + hash + "." + ext + "?size=256"
 }
 
 func (p *DiscordProvider) IsUserIDTaken(providerUserID string) bool {

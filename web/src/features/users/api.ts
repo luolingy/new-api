@@ -267,3 +267,34 @@ export async function adminUnbindCustomOAuth(
   )
   return res.data
 }
+
+// ============================================================================
+// Image playground access
+// ============================================================================
+
+export type ImagePlaygroundAccess = {
+  disabled: boolean
+}
+
+/**
+ * Read whether the offline image playground is disabled for a user
+ */
+export async function getImagePlaygroundAccess(
+  userId: number
+): Promise<ImagePlaygroundAccess> {
+  const res = await api.get(`/api/user/${userId}/image-playground`)
+  return requireServerSuccess(res.data).data as ImagePlaygroundAccess
+}
+
+/**
+ * Enable or disable the offline image playground for a user
+ */
+export async function setImagePlaygroundAccess(
+  userId: number,
+  disabled: boolean
+): Promise<ImagePlaygroundAccess> {
+  const res = await api.put(`/api/user/${userId}/image-playground`, {
+    disabled,
+  })
+  return requireServerSuccess(res.data).data as ImagePlaygroundAccess
+}

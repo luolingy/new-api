@@ -197,6 +197,52 @@ func UpdateUserSetting(userId int, setting dto.UserSetting) error {
 	return updateUserSettingCache(userId, settingValue)
 }
 
+// GetUserAvatar returns the avatar URL stored in the user settings.
+func GetUserAvatar(userId int) (string, error) {
+	if userId == 0 {
+		return "", errors.New("id 为空！")
+	}
+	user, err := GetUserById(userId, true)
+	if err != nil {
+		return "", err
+	}
+	return user.GetSetting().AvatarURL, nil
+}
+
+// UpdateUserAvatar stores the avatar URL in the user settings. Passing an empty
+// value clears the avatar.
+func UpdateUserAvatar(userId int, avatarURL string) error {
+	if userId == 0 {
+		return errors.New("id 为空！")
+	}
+	user, err := GetUserById(userId, true)
+	if err != nil {
+		return err
+	}
+	setting := user.GetSetting()
+	if setting.AvatarURL == avatarURL {
+		return nil
+	}
+	setting.AvatarURL = avatarURL
+	return UpdateUserSetting(userId, setting)
+}
+
+// EnsureUserAvatar keeps an existing avatar and only fills in a default one, so
+// OAuth logins never overwrite a picture the user uploaded or chose.
+func EnsureUserAvatar(userId int, avatarURL string) error {
+	if userId == 0 || avatarURL == "" {
+		return nil
+	}
+	current, err := GetUserAvatar(userId)
+	if err != nil {
+		return err
+	}
+	if current != "" {
+		return nil
+	}
+	return UpdateUserAvatar(userId, avatarURL)
+}
+
 // userBindColumns 允许通过 UpdateUserBindColumn 更新的第三方账号绑定列白名单。
 // 列名只可能来自代码内部的 provider 实现，白名单是防御纵深，不依赖调用方自律。
 var userBindColumns = map[string]bool{

@@ -28,6 +28,10 @@ import {
   type HeaderNavModule,
 } from '@/lib/nav-modules'
 import {
+  SITE_THEME_BACKGROUND_ATTRIBUTE,
+  SITE_THEME_GLASS_ATTRIBUTE,
+} from '@/lib/site-theme'
+import {
   STATUS_QUERY_KEY,
   ensureStatus,
   statusQueryOptions,
@@ -87,6 +91,9 @@ afterEach(() => {
   apiClient.get = originalGet
   window.localStorage.clear()
   useSystemConfigStore.setState(useSystemConfigStore.getInitialState(), true)
+  document.body.removeAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
+  document.body.removeAttribute(SITE_THEME_GLASS_ATTRIBUTE)
+  document.body.style.removeProperty('--site-theme-background-image')
 })
 
 describe('shared status query deduplication', () => {
@@ -177,6 +184,53 @@ describe('shared status query deduplication', () => {
       ).toBe('refreshed')
     })
     expect(statusRequests).toHaveLength(1)
+  })
+})
+
+describe('site theme status side effect', () => {
+  test('applies and clears the administrator site theme from /api/status', async () => {
+    const queryClient = createQueryClient()
+    apiClient.get = async () => ({
+      data: {
+        success: true,
+        data: {
+          system_name: 'themed',
+          site_theme: {
+            background_image: 'https://cdn.example.com/bg.png',
+            glass_cards: true,
+          },
+        },
+      },
+    })
+
+    await ensureStatus(queryClient)
+
+    expect(document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)).toBe(
+      'true'
+    )
+    expect(document.body.getAttribute(SITE_THEME_GLASS_ATTRIBUTE)).toBe('true')
+    expect(
+      document.body.style.getPropertyValue('--site-theme-background-image')
+    ).toContain('https://cdn.example.com/bg.png')
+
+    apiClient.get = async () => ({
+      data: {
+        success: true,
+        data: {
+          system_name: 'plain',
+          site_theme: { background_image: '', glass_cards: true },
+        },
+      },
+    })
+    await queryClient.fetchQuery({ ...statusQueryOptions, staleTime: 0 })
+
+    expect(
+      document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
+    ).toBeNull()
+    expect(document.body.getAttribute(SITE_THEME_GLASS_ATTRIBUTE)).toBeNull()
+    expect(
+      document.body.style.getPropertyValue('--site-theme-background-image')
+    ).toBe('')
   })
 })
 

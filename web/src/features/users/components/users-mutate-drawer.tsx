@@ -17,7 +17,7 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { Pencil } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
@@ -62,6 +62,7 @@ import {
   SheetHeader,
   SheetTitle,
 } from '@/components/ui/sheet'
+import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import {
   ADMIN_PERMISSION_ACTIONS,
@@ -85,7 +86,9 @@ import {
   updateUser,
   getUser,
   getGroups,
+  getImagePlaygroundAccess,
   getPermissionCatalog,
+  setImagePlaygroundAccess,
 } from '../api'
 import { BINDING_FIELDS, ERROR_MESSAGES, SUCCESS_MESSAGES } from '../constants'
 import {
@@ -134,6 +137,24 @@ export function UsersMutateDrawer({
     queryKey: ['admin-permission-catalog'],
     queryFn: async () => requireServerSuccess(await getPermissionCatalog()),
     staleTime: 5 * 60 * 1000,
+  })
+
+  const queryClient = useQueryClient()
+  const imagePlaygroundAccessQuery = useQuery({
+    queryKey: ['user-image-playground-access', currentRow?.id],
+    queryFn: () => getImagePlaygroundAccess(currentRow?.id ?? 0),
+    enabled: open && !!currentRow,
+  })
+  const imagePlaygroundAccessMutation = useMutation({
+    mutationFn: (disabled: boolean) =>
+      setImagePlaygroundAccess(currentRow?.id ?? 0, disabled),
+    onSuccess: (data) => {
+      queryClient.setQueryData(
+        ['user-image-playground-access', currentRow?.id],
+        data
+      )
+      toast.success(t('Image playground access updated'))
+    },
   })
 
   const form = useForm<UserFormValues>({
@@ -496,6 +517,39 @@ export function UsersMutateDrawer({
                       </FormItem>
                     )}
                   />
+                </SideDrawerSection>
+              )}
+
+              {isUpdate && currentRow && (
+                <SideDrawerSection>
+                  <h3 className='text-sm font-medium'>
+                    {t('Image Playground')}
+                  </h3>
+                  <div className='flex items-center justify-between gap-3'>
+                    <div className='min-w-0 space-y-0.5'>
+                      <Label htmlFor='user-image-playground-disabled'>
+                        {t('Disable image playground')}
+                      </Label>
+                      <p className='text-muted-foreground text-xs'>
+                        {t(
+                          'Blocked users cannot submit new offline image tasks.'
+                        )}
+                      </p>
+                    </div>
+                    <Switch
+                      checked={
+                        imagePlaygroundAccessQuery.data?.disabled ?? false
+                      }
+                      disabled={
+                        imagePlaygroundAccessQuery.isLoading ||
+                        imagePlaygroundAccessMutation.isPending
+                      }
+                      id='user-image-playground-disabled'
+                      onCheckedChange={(checked) =>
+                        imagePlaygroundAccessMutation.mutate(checked)
+                      }
+                    />
+                  </div>
                 </SideDrawerSection>
               )}
 
