@@ -18,6 +18,8 @@ import (
 	"strings"
 	"time"
 
+	_ "golang.org/x/image/webp"
+
 	"github.com/QuantumNous/new-api/setting/s3_setting"
 )
 
@@ -26,31 +28,49 @@ import (
 // mistake or an attempt to exhaust memory.
 const MaxAvatarUploadBytes = 1 << 20
 
+// MaxThemeBackgroundUploadBytes is the upper bound for a site theme background.
+// A full-width banner is far larger than an avatar, so it gets its own budget.
+const MaxThemeBackgroundUploadBytes = 4 << 20
+
 // MaxAvatarDimension bounds decoded images so a tiny file header cannot force a
 // huge allocation during validation.
 const MaxAvatarDimension = 8192
 
-// ValidateAvatarImage checks the payload is a decodable JPEG or PNG image and
-// returns its MIME type and file extension.
-func ValidateAvatarImage(data []byte) (string, string, error) {
+// MaxThemeBackgroundDimension bounds the decoded size of a background image.
+const MaxThemeBackgroundDimension = 8192
+
+// ValidateUploadedImage checks that the payload is a decodable JPEG, PNG or WebP
+// image within maxDimension and returns its MIME type and file extension.
+func ValidateUploadedImage(data []byte, maxDimension int) (string, string, error) {
 	contentType := http.DetectContentType(data)
-	if contentType != "image/jpeg" && contentType != "image/png" {
-		return "", "", errors.New("头像必须是 JPEG 或 PNG 图片")
+	var ext string
+	switch contentType {
+	case "image/jpeg":
+		ext = "jpg"
+	case "image/png":
+		ext = "png"
+	case "image/webp":
+		ext = "webp"
+	default:
+		return "", "", errors.New("图片必须是 JPEG、PNG 或 WebP 格式")
 	}
 	cfg, _, err := image.DecodeConfig(bytes.NewReader(data))
 	if err != nil {
-		return "", "", errors.New("头像图片无法解析")
+		return "", "", errors.New("图片无法解析")
 	}
 	if cfg.Width <= 0 || cfg.Height <= 0 {
-		return "", "", errors.New("头像图片尺寸无效")
+		return "", "", errors.New("图片尺寸无效")
 	}
-	if cfg.Width > MaxAvatarDimension || cfg.Height > MaxAvatarDimension {
-		return "", "", fmt.Errorf("头像图片尺寸不能超过 %d 像素", MaxAvatarDimension)
+	if cfg.Width > maxDimension || cfg.Height > maxDimension {
+		return "", "", fmt.Errorf("图片尺寸不能超过 %d 像素", maxDimension)
 	}
-	if contentType == "image/png" {
-		return contentType, "png", nil
-	}
-	return contentType, "jpg", nil
+	return contentType, ext, nil
+}
+
+// ValidateAvatarImage checks the payload is a decodable JPEG, PNG or WebP image
+// and returns its MIME type and file extension.
+func ValidateAvatarImage(data []byte) (string, string, error) {
+	return ValidateUploadedImage(data, MaxAvatarDimension)
 }
 
 var emptySHA256 = hexSHA256(nil)
@@ -69,6 +89,11 @@ func NewAvatarObjectKey(userID int, ext string) string {
 	return fmt.Sprintf("%s/%d/%d-%s.%s", s3_setting.GetS3Setting().NormalizedPrefix(), userID, time.Now().Unix(), randomHex(4), ext)
 }
 
+// NewThemeObjectKey builds a unique object key for the site theme background.
+func NewThemeObjectKey(ext string) string {
+	return fmt.Sprintf("%s/theme/%d-%s.%s", s3_setting.GetS3Setting().NormalizedPrefix(), time.Now().Unix(), randomHex(4), ext)
+}
+
 func randomHex(n int) string {
 	buf := make([]byte, n)
 	if _, err := rand.Read(buf); err != nil {
@@ -77,8 +102,8 @@ func randomHex(n int) string {
 	return hex.EncodeToString(buf)
 }
 
-// UploadAvatarObject stores one avatar image and returns its public URL.
-func UploadAvatarObject(ctx context.Context, key, contentType string, data []byte) (string, error) {
+// UploadObject stores one image and returns its public URL.
+func UploadObject(ctx context.Context, key, contentType string, data []byte) (string, error) {
 	cfg := s3_setting.GetS3Setting()
 	if !cfg.Ready() {
 		return "", errors.New("尚未启用或配置 S3 存储，无法上传头像")
@@ -142,10 +167,10 @@ func DeleteAvatarObject(ctx context.Context, key string) error {
 	return nil
 }
 
-// DeleteAvatarByURL removes a previously stored avatar when the URL still
-// points at the configured bucket. Unknown URLs are ignored so that avatars
+// DeleteS3ObjectByURL removes a previously stored object when the URL still
+// points at the configured bucket. Unknown URLs are ignored so that images
 // imported from OAuth providers never trigger remote deletions.
-func DeleteAvatarByURL(ctx context.Context, rawURL string) {
+func DeleteS3ObjectByURL(ctx context.Context, rawURL string) {
 	cfg := s3_setting.GetS3Setting()
 	if !cfg.Configured() {
 		return

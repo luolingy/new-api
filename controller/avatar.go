@@ -62,18 +62,18 @@ func UploadUserAvatar(c *gin.Context) {
 
 	previous, _ := model.GetUserAvatar(userId)
 	key := service.NewAvatarObjectKey(userId, ext)
-	avatarURL, err := service.UploadAvatarObject(c.Request.Context(), key, contentType, data)
+	avatarURL, err := service.StoreUploadedImage(c.Request.Context(), "avatars", key, ext, contentType, data)
 	if err != nil {
 		common.ApiErrorMsg(c, err.Error())
 		return
 	}
 	if err := model.UpdateUserAvatar(userId, avatarURL); err != nil {
-		service.DeleteAvatarByURL(c.Request.Context(), avatarURL)
+		service.DeleteUploadedImageByURL(c.Request.Context(), avatarURL)
 		common.ApiError(c, err)
 		return
 	}
 	if previous != "" && previous != avatarURL {
-		service.DeleteAvatarByURL(c.Request.Context(), previous)
+		service.DeleteUploadedImageByURL(c.Request.Context(), previous)
 	}
 	common.ApiSuccess(c, gin.H{"avatar_url": avatarURL})
 }
@@ -95,7 +95,7 @@ func DeleteUserAvatar(c *gin.Context) {
 		return
 	}
 	if previous != "" {
-		service.DeleteAvatarByURL(c.Request.Context(), previous)
+		service.DeleteUploadedImageByURL(c.Request.Context(), previous)
 	}
 	common.ApiSuccess(c, nil)
 }

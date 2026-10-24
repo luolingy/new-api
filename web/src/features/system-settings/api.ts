@@ -51,6 +51,20 @@ export async function testS3Connection() {
   return res.data
 }
 
+export async function uploadThemeBackground(
+  file: File
+): Promise<UpdateOptionResponse & { data?: { background_image?: string } }> {
+  const formData = new FormData()
+  formData.append('file', file, file.name || 'background')
+  const res = await api.post('/api/option/theme/background', formData)
+  return res.data
+}
+
+export async function removeThemeBackground() {
+  const res = await api.delete('/api/option/theme/background')
+  return res.data
+}
+
 export async function updatePasskeyDomains(
   request: UpdatePasskeyDomainsRequest
 ) {

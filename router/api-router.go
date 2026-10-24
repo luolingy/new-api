@@ -236,6 +236,8 @@ func SetApiRouter(router *gin.Engine) {
 			optionRoute.PATCH("/request_policy", controller.UpdateRequestPolicy)
 			optionRoute.PUT("/", controller.UpdateOption)
 			optionRoute.POST("/s3/test", controller.TestS3Connection)
+			optionRoute.POST("/theme/background", middleware.DisableCache(), controller.UploadThemeBackground)
+			optionRoute.DELETE("/theme/background", middleware.DisableCache(), controller.DeleteThemeBackground)
 			optionRoute.PUT("/passkey/domains", controller.UpdatePasskeyDomains)
 			optionRoute.GET("/model_pricing", controller.GetModelPricingConfig)
 			optionRoute.PATCH("/model_pricing", controller.UpdateModelPricingConfig)

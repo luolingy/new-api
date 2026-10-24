@@ -40,6 +40,8 @@ const defaultSiteSettings: SiteSettings = {
   SidebarModulesAdmin: '',
   'theme.background_image': '',
   'theme.glass_cards': true,
+  'storage.mode': 'auto',
+  'storage.local_dir': '',
   's3.enabled': false,
   's3.endpoint': '',
   's3.public_base_url': '',

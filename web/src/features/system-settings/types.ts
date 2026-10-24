@@ -156,6 +156,8 @@ export type SiteSettings = {
   SidebarModulesAdmin: string
   'theme.background_image': string
   'theme.glass_cards': boolean
+  'storage.mode': string
+  'storage.local_dir': string
   's3.enabled': boolean
   's3.endpoint': string
   's3.public_base_url': string

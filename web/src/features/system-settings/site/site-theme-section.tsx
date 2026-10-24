@@ -18,11 +18,13 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { toast } from 'sonner'
 import * as z from 'zod'
 
+import { Button } from '@/components/ui/button'
 import {
   Form,
   FormControl,
@@ -33,9 +35,11 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { handleServerError } from '@/lib/handle-server-error'
 import { applySiteTheme, sanitizeBackgroundImage } from '@/lib/site-theme'
 import { STATUS_QUERY_KEY, STATUS_STORAGE_KEY } from '@/lib/status-query'
 
+import { removeThemeBackground, uploadThemeBackground } from '../api'
 import {
   SettingsForm,
   SettingsSwitchField,
@@ -61,6 +65,8 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
   const queryClient = useQueryClient()
   const updateOption = useUpdateOption()
   const [glassCards, setGlassCards] = useState(props.glassCards)
+  const [uploading, setUploading] = useState(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
   const form = useForm<SiteThemeFormValues>({
     resolver: zodResolver(
       z.object({
@@ -148,6 +154,63 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
       .catch(() => setGlassCards(previousGlassCards))
   }
 
+  /**
+   * Refresh both the settings form and the live theme after the backend stored a
+   * new background. The upload endpoint already persisted the option, so this
+   * only mirrors the returned URL into the UI and the shared status cache.
+   */
+  const applyUploadedBackground = (url: string) => {
+    form.setValue('backgroundImage', url, { shouldDirty: false })
+    seedStatusTheme(url, glassCards)
+    applySiteTheme({ backgroundImage: url, glassCards })
+  }
+
+  const handleBackgroundFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>
+  ) => {
+    const file = event.target.files?.[0]
+    event.target.value = ''
+    if (!file) return
+    setUploading(true)
+    try {
+      const result = await uploadThemeBackground(file)
+      if (!result.success) {
+        handleServerError(result, t('Failed to upload image'))
+        return
+      }
+      const url = result.data?.background_image ?? ''
+      if (url) {
+        applyUploadedBackground(url)
+        // Keep the settings cache fresh so re-opening the section shows the URL.
+        queryClient.invalidateQueries({ queryKey: ['system-options'] })
+        toast.success(t('Image uploaded'))
+      }
+    } catch (error) {
+      handleServerError(error, t('Failed to upload image'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const handleRemoveBackground = async () => {
+    if (!props.backgroundImage) return
+    setUploading(true)
+    try {
+      const result = await removeThemeBackground()
+      if (!result.success) {
+        handleServerError(result, t('Failed to remove image'))
+        return
+      }
+      applyUploadedBackground('')
+      queryClient.invalidateQueries({ queryKey: ['system-options'] })
+      toast.success(t('Image removed'))
+    } catch (error) {
+      handleServerError(error, t('Failed to remove image'))
+    } finally {
+      setUploading(false)
+    }
+  }
+
   return (
     <SettingsSection title={t('Site Theme')}>
       <Form {...form}>
@@ -170,9 +233,36 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
                     {...field}
                   />
                 </FormControl>
+                <div className='flex flex-wrap items-center gap-2'>
+                  <input
+                    ref={fileInputRef}
+                    type='file'
+                    accept='image/png,image/jpeg,image/webp'
+                    className='hidden'
+                    onChange={handleBackgroundFileChange}
+                  />
+                  <Button
+                    type='button'
+                    variant='outline'
+                    size='sm'
+                    disabled={uploading}
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    {uploading ? t('Uploading...') : t('Upload image')}
+                  </Button>
+                  <Button
+                    type='button'
+                    variant='ghost'
+                    size='sm'
+                    disabled={uploading || !props.backgroundImage}
+                    onClick={handleRemoveBackground}
+                  >
+                    {t('Remove image')}
+                  </Button>
+                </div>
                 <FormDescription>
                   {t(
-                    'Leave empty to turn the site theme off. Use an https:// image URL or a path served by this site (starting with /).'
+                    'Upload an image file (stored on this site) or paste a URL. Leave empty to turn the site theme off.'
                   )}{' '}
                   {t(
                     'The background image is fixed and covers the viewport. Pick a low-contrast image so text stays readable.'

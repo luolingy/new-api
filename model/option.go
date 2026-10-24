@@ -16,6 +16,7 @@ import (
 	"github.com/QuantumNous/new-api/setting/performance_setting"
 	"github.com/QuantumNous/new-api/setting/ratio_setting"
 	"github.com/QuantumNous/new-api/setting/s3_setting"
+	"github.com/QuantumNous/new-api/setting/storage_setting"
 	"github.com/QuantumNous/new-api/setting/system_setting"
 	"github.com/QuantumNous/new-api/setting/theme_setting"
 	"gorm.io/gorm"
@@ -260,6 +261,10 @@ func validateOptionValue(key string, value string) error {
 		return s3_setting.ValidateRegion(value)
 	case "s3.path_prefix":
 		return s3_setting.ValidatePathPrefix(value)
+	case "storage.mode":
+		return storage_setting.ValidateMode(value)
+	case "storage.local_dir":
+		return storage_setting.ValidateLocalDir(value)
 	case "image_playground.models":
 		return image_playground_setting.ValidateModels(value)
 	case "image_playground.max_reference_images":

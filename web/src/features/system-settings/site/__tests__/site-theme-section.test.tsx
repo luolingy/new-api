@@ -122,3 +122,48 @@ test('saving a background image seeds the status cache and localStorage so a sta
     glass_cards: true,
   })
 })
+
+test('uploading a background image posts it to the local-upload endpoint and applies the returned URL', async () => {
+  vi.spyOn(api, 'post').mockResolvedValue({
+    data: {
+      success: true,
+      data: { background_image: '/uploads/theme/1712345678-abcdef.png' },
+    },
+  })
+  const user = userEvent.setup()
+  const { client, input } = await renderSection()
+
+  const fileInput = document.querySelector<HTMLInputElement>(
+    'input[type="file"]'
+  )
+  expect(fileInput).not.toBeNull()
+  await user.upload(
+    fileInput as HTMLInputElement,
+    new File(['fake-bytes'], 'bg.png', { type: 'image/png' })
+  )
+
+  await waitFor(() => expect(api.post).toHaveBeenCalledTimes(1))
+  const [url, body] = vi.mocked(api.post).mock.calls[0]
+  expect(url).toBe('/api/option/theme/background')
+  expect(body).toBeInstanceOf(FormData)
+
+  // The returned URL is written back into the URL field...
+  await waitFor(() =>
+    expect(input).toHaveValue('/uploads/theme/1712345678-abcdef.png')
+  )
+  // ...and immediately previewed on the body.
+  await waitFor(() =>
+    expect(document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)).toBe(
+      'true'
+    )
+  )
+
+  // The shared status cache is seeded with the uploaded URL.
+  const cachedStatus = client.getQueryData<Record<string, unknown>>(
+    STATUS_QUERY_KEY
+  )
+  expect(cachedStatus?.site_theme).toEqual({
+    background_image: '/uploads/theme/1712345678-abcdef.png',
+    glass_cards: true,
+  })
+})

@@ -72,6 +72,8 @@ const SITE_SECTIONS = [
     titleKey: 'Object Storage',
     build: (settings: SiteSettings) => (
       <S3StorageSection
+        storageMode={settings['storage.mode']}
+        localDir={settings['storage.local_dir']}
         enabled={settings['s3.enabled']}
         endpoint={settings['s3.endpoint']}
         publicBaseUrl={settings['s3.public_base_url']}

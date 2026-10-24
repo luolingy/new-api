@@ -34,6 +34,10 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import {
+  NativeSelect,
+  NativeSelectOption,
+} from '@/components/ui/native-select'
 import { handleServerError } from '@/lib/handle-server-error'
 
 import { testS3Connection } from '../api'
@@ -46,6 +50,8 @@ import { SettingsSection } from '../components/settings-section'
 import { useUpdateOption } from '../hooks/use-update-option'
 
 type S3StorageSectionProps = {
+  storageMode: string
+  localDir: string
   enabled: boolean
   endpoint: string
   publicBaseUrl: string
@@ -56,6 +62,8 @@ type S3StorageSectionProps = {
 }
 
 type S3StorageFormValues = {
+  storageMode: 'auto' | 'local' | 's3'
+  localDir: string
   enabled: boolean
   endpoint: string
   publicBaseUrl: string
@@ -79,13 +87,23 @@ const OPTION_KEYS = {
   secretKey: 's3.secretKey',
 } as const
 
+const STORAGE_MODE_OPTION = 'storage.mode'
+const STORAGE_LOCAL_DIR_OPTION = 'storage.local_dir'
+
 const httpUrlPattern = /^https?:\/\/[^\s]+$/i
+
+function normalizeStorageMode(value: string): 'auto' | 'local' | 's3' {
+  if (value === 'local' || value === 's3') return value
+  return 'auto'
+}
 
 export function S3StorageSection(props: S3StorageSectionProps) {
   const { t } = useTranslation()
   const updateOption = useUpdateOption()
   const [testing, setTesting] = useState(false)
   const baseline = useRef({
+    storageMode: normalizeStorageMode(props.storageMode),
+    localDir: props.localDir,
     enabled: props.enabled,
     endpoint: props.endpoint,
     publicBaseUrl: props.publicBaseUrl,
@@ -98,6 +116,12 @@ export function S3StorageSection(props: S3StorageSectionProps) {
   const form = useForm<S3StorageFormValues>({
     resolver: zodResolver(
       z.object({
+        storageMode: z.enum(['auto', 'local', 's3']),
+        localDir: z
+          .string()
+          .refine((value) => !value.includes('..'), {
+            error: t('The directory must not contain ..'),
+          }),
         enabled: z.boolean(),
         endpoint: z
           .string()
@@ -150,6 +174,12 @@ export function S3StorageSection(props: S3StorageSectionProps) {
 
   const onSubmit = async (values: S3StorageFormValues) => {
     const changes: { key: string; value: string | boolean }[] = []
+    if (values.storageMode !== baseline.current.storageMode) {
+      changes.push({ key: STORAGE_MODE_OPTION, value: values.storageMode })
+    }
+    if (values.localDir.trim() !== baseline.current.localDir) {
+      changes.push({ key: STORAGE_LOCAL_DIR_OPTION, value: values.localDir.trim() })
+    }
     for (const [field, key] of Object.entries(OPTION_KEYS)) {
       const fieldName = field as keyof S3StorageFormValues
       if (fieldName === 'accessKey' || fieldName === 'secretKey') continue
@@ -190,6 +220,8 @@ export function S3StorageSection(props: S3StorageSectionProps) {
       return
     }
     baseline.current = {
+      storageMode: values.storageMode,
+      localDir: values.localDir.trim(),
       enabled: values.enabled,
       endpoint: values.endpoint,
       publicBaseUrl: values.publicBaseUrl,
@@ -225,6 +257,57 @@ export function S3StorageSection(props: S3StorageSectionProps) {
             onSave={form.handleSubmit(onSubmit)}
             isSaving={updateOption.isPending}
             saveLabel='Save object storage'
+          />
+          <FormField
+            control={form.control}
+            name='storageMode'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Upload storage')}</FormLabel>
+                <FormControl>
+                  <NativeSelect
+                    {...field}
+                    onChange={(event) => field.onChange(event.target.value)}
+                  >
+                    <NativeSelectOption value='auto'>
+                      {t('Auto: S3 when configured, otherwise local disk')}
+                    </NativeSelectOption>
+                    <NativeSelectOption value='local'>
+                      {t('Local disk')}
+                    </NativeSelectOption>
+                    <NativeSelectOption value='s3'>{t('S3')}</NativeSelectOption>
+                  </NativeSelect>
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Where uploaded avatars and the site background are saved.'
+                  )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
+          <FormField
+            control={form.control}
+            name='localDir'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>{t('Local upload directory')}</FormLabel>
+                <FormControl>
+                  <Input
+                    placeholder='data/uploads'
+                    autoComplete='off'
+                    {...field}
+                  />
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'Directory on the server for local uploads. Leave empty to use data/uploads. The UPLOADS_DIR environment variable overrides it.'
+                  )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
           />
           <div className='lg:col-span-2'>
             <Button
