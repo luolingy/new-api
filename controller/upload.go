@@ -3,6 +3,7 @@ package controller
 import (
 	"net/http"
 	"os"
+	"path"
 
 	"github.com/QuantumNous/new-api/service"
 
@@ -13,7 +14,9 @@ import (
 // image extensions under the uploads root are served; everything else is a
 // plain 404 so the directory cannot be enumerated or traversed.
 func ServeLocalUpload(c *gin.Context) {
-	publicPath := service.LocalUploadsPublicPrefix + "/" + c.Param("path")
+	// The *path wildcard already carries a leading slash; path.Join keeps the
+	// result correctly normalised without doubling separators.
+	publicPath := path.Join(service.LocalUploadsPublicPrefix, c.Param("path"))
 	diskPath, contentType, ok := service.LocalUploadFile(publicPath)
 	if !ok {
 		c.Status(http.StatusNotFound)

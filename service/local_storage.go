@@ -118,8 +118,18 @@ func localUploadRelativePath(publicPath string) (string, bool) {
 	if !strings.HasPrefix(trimmed, prefix) {
 		return "", false
 	}
-	rel := path.Clean(strings.TrimPrefix(trimmed, prefix))
-	if rel == "." || rel == ".." || strings.HasPrefix(rel, "../") || strings.HasPrefix(rel, "/") {
+	raw := strings.TrimPrefix(trimmed, prefix)
+	// Reject any traversal attempt before cleaning so a cleaned-away ".." cannot
+	// silently map to a different in-tree file.
+	for segment := range strings.SplitSeq(strings.ReplaceAll(raw, "\\", "/"), "/") {
+		if segment == ".." {
+			return "", false
+		}
+	}
+	// Collapse duplicate slashes a caller may introduce ("/uploads//theme/a").
+	rel := path.Clean("/" + raw)
+	rel = strings.TrimPrefix(rel, "/")
+	if rel == "" || rel == "." {
 		return "", false
 	}
 	return rel, true

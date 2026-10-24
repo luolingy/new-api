@@ -70,6 +70,11 @@ func TestLocalUploadRejectsTraversalAndUnknownExtensions(t *testing.T) {
 	// Save refuses an unknown extension too.
 	_, err := SaveLocalUpload("avatars", "txt", []byte("x"))
 	assert.Error(t, err)
+
+	// A duplicate slash (e.g. from a "//" URL) still resolves inside the tree.
+	require.NoError(t, os.WriteFile(filepath.Join(LocalUploadsDir(), "ok.png"), []byte("x"), 0o644))
+	_, _, ok = LocalUploadFile("/uploads//ok.png")
+	assert.True(t, ok, "duplicate slashes must not break resolution")
 }
 
 func TestValidateUploadedImage(t *testing.T) {
