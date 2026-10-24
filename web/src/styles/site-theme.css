@@ -73,7 +73,10 @@ body[data-site-theme-glass='true'] [class~='bg-sidebar'] {
 /* Round + ring the desktop sidebar panel so it reads as a floating glass card
  * (the floating variant already rounds itself in Tailwind; the default inset
  * variant does not). The inset container has p-2, so rounding sits inside the
- * gap and the background image shows around it on every edge. */
+ * gap and the background image shows around it on every edge. The shared
+ * `bg-sidebar` rule above stays fairly opaque for readability; this panel is
+ * made noticeably more translucent so the blurred image actually reads through
+ * it instead of looking like a solid block. */
 body[data-site-theme-glass='true']
   [data-slot='sidebar'][data-variant='inset']
   [data-slot='sidebar-inner'],
@@ -81,10 +84,12 @@ body[data-site-theme-glass='true']
   [data-slot='sidebar'][data-variant='floating']
   [data-slot='sidebar-inner'] {
   border-radius: var(--radius-lg, 0.75rem);
-  box-shadow: 0 6px 24px -12px rgb(0 0 0 / 0.25);
+  background-color: color-mix(in oklch, var(--sidebar) 45%, transparent);
   box-shadow: 0 6px 24px -12px oklch(0 0 0 / 0.25);
   outline: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
   outline-offset: -1px;
+  -webkit-backdrop-filter: blur(22px) saturate(1.6);
+  backdrop-filter: blur(22px) saturate(1.6);
 }
 
 /* Blur only the large surfaces: the frost reads as glass without stacking a
