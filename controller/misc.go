@@ -71,6 +71,7 @@ func GetStatus(c *gin.Context) {
 			"background_image":    siteTheme.BackgroundImage,
 			"background_position": siteTheme.NormalizedBackgroundPosition(),
 			"glass_cards":         siteTheme.GlassCards,
+			"card_opacity":        siteTheme.NormalizedCardOpacity(),
 		},
 		"system_name":        common.SystemName,
 		"logo":               common.Logo,

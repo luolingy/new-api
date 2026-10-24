@@ -157,6 +157,7 @@ export type SiteSettings = {
   'theme.background_image': string
   'theme.background_position': string
   'theme.glass_cards': boolean
+  'theme.card_opacity': number
   'storage.mode': string
   'storage.local_dir': string
   's3.enabled': boolean

@@ -1,4 +1,4 @@
-﻿/*
+/*
 Copyright (C) 2023-2026 QuantumNous
 
 This program is free software: you can redistribute it and/or modify
@@ -41,7 +41,12 @@ function Fixture() {
     <>
       <div ref={setContainer} />
       <SettingsPageProvider actionsContainer={container}>
-        <SiteThemeSection backgroundImage='' backgroundPosition='center' glassCards />
+        <SiteThemeSection
+          backgroundImage=''
+          backgroundPosition='center'
+          cardOpacity={68}
+          glassCards
+        />
       </SettingsPageProvider>
     </>
   )
@@ -112,6 +117,7 @@ test('saving a background image seeds the status cache and localStorage so a sta
     background_image: 'https://cdn.example.com/bg.png',
     glass_cards: true,
     background_position: 'center',
+    card_opacity: 68,
   })
 
   // The localStorage snapshot used on the next cold start also carries it.
@@ -122,6 +128,7 @@ test('saving a background image seeds the status cache and localStorage so a sta
     background_image: 'https://cdn.example.com/bg.png',
     glass_cards: true,
     background_position: 'center',
+    card_opacity: 68,
   })
 })
 
@@ -168,6 +175,7 @@ test('uploading a background image posts it to the local-upload endpoint and app
     background_image: '/uploads/theme/1712345678-abcdef.png',
     glass_cards: true,
     background_position: 'center',
+    card_opacity: 68,
   })
 })
 

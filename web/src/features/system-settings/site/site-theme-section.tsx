@@ -35,10 +35,12 @@ import {
   FormMessage,
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
+import { Slider } from '@/components/ui/slider'
 import { handleServerError } from '@/lib/handle-server-error'
 import {
   applySiteTheme,
   normalizeBackgroundPosition,
+  normalizeCardOpacity,
   sanitizeBackgroundImage,
 } from '@/lib/site-theme'
 import { STATUS_QUERY_KEY, STATUS_STORAGE_KEY } from '@/lib/status-query'
@@ -56,6 +58,7 @@ type SiteThemeSectionProps = {
   backgroundImage: string
   backgroundPosition: string
   glassCards: boolean
+  cardOpacity: number
 }
 
 type SiteThemeFormValues = {
@@ -65,6 +68,7 @@ type SiteThemeFormValues = {
 const BACKGROUND_IMAGE_OPTION = 'theme.background_image'
 const BACKGROUND_POSITION_OPTION = 'theme.background_position'
 const GLASS_CARDS_OPTION = 'theme.glass_cards'
+const CARD_OPACITY_OPTION = 'theme.card_opacity'
 
 /** Focus presets in the order they render in the 3x3 picker. */
 const POSITION_GRID: string[][] = [
@@ -93,6 +97,9 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
   const [glassCards, setGlassCards] = useState(props.glassCards)
   const [backgroundPosition, setBackgroundPosition] = useState(
     normalizeBackgroundPosition(props.backgroundPosition)
+  )
+  const [cardOpacity, setCardOpacity] = useState(
+    normalizeCardOpacity(props.cardOpacity)
   )
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
@@ -125,6 +132,10 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     setBackgroundPosition(normalizeBackgroundPosition(props.backgroundPosition))
   }, [props.backgroundPosition])
 
+  useEffect(() => {
+    setCardOpacity(normalizeCardOpacity(props.cardOpacity))
+  }, [props.cardOpacity])
+
   /**
    * Persist the saved theme straight into the shared `/api/status` cache and
    * its localStorage snapshot, then apply it to `<body>`.
@@ -139,12 +150,14 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
   const seedStatusTheme = (
     backgroundImage: string,
     backgroundPos: string,
-    glassCardsEnabled: boolean
+    glassCardsEnabled: boolean,
+    opacity: number
   ) => {
     const siteTheme = {
       background_image: backgroundImage,
       background_position: backgroundPos,
       glass_cards: glassCardsEnabled,
+      card_opacity: opacity,
     }
     queryClient.setQueryData<Record<string, unknown> | null>(
       STATUS_QUERY_KEY,
@@ -162,12 +175,18 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     }
   }
 
-  const previewTheme = (image: string, position: string, glass: boolean) => {
-    seedStatusTheme(image, position, glass)
+  const previewTheme = (
+    image: string,
+    position: string,
+    glass: boolean,
+    opacity: number
+  ) => {
+    seedStatusTheme(image, position, glass, opacity)
     applySiteTheme({
       backgroundImage: image,
       backgroundPosition: position,
       glassCards: glass,
+      cardOpacity: opacity,
     })
   }
 
@@ -180,7 +199,7 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     })
     // Pin the saved value before previewing so a racing stale status response
     // cannot clear it back to the previous image.
-    previewTheme(normalized, backgroundPosition, glassCards)
+    previewTheme(normalized, backgroundPosition, glassCards, cardOpacity)
   }
 
   const handleGlassCardsChange = (checked: boolean) => {
@@ -190,7 +209,9 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     // control keeps matching the persisted option.
     updateOption
       .mutateAsync({ key: GLASS_CARDS_OPTION, value: checked })
-      .then(() => previewTheme(props.backgroundImage, backgroundPosition, checked))
+      .then(() =>
+        previewTheme(props.backgroundImage, backgroundPosition, checked, cardOpacity)
+      )
       .catch(() => setGlassCards(previousGlassCards))
   }
 
@@ -201,8 +222,34 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     setBackgroundPosition(normalized)
     updateOption
       .mutateAsync({ key: BACKGROUND_POSITION_OPTION, value: normalized })
-      .then(() => previewTheme(props.backgroundImage, normalized, glassCards))
+      .then(() =>
+        previewTheme(props.backgroundImage, normalized, glassCards, cardOpacity)
+      )
       .catch(() => setBackgroundPosition(previous))
+  }
+
+  /**
+   * Card opacity is previewed instantly (so dragging the slider is live) but
+   * only persisted when the user releases the slider, to avoid a request per
+   * pixel. `onValueCommit` calls this.
+   */
+  const previewCardOpacity = (next: number) => {
+    const normalized = normalizeCardOpacity(next)
+    setCardOpacity(normalized)
+    previewTheme(
+      props.backgroundImage,
+      backgroundPosition,
+      glassCards,
+      normalized
+    )
+  }
+
+  const commitCardOpacity = (next: number) => {
+    const normalized = normalizeCardOpacity(next)
+    if (normalized === normalizeCardOpacity(props.cardOpacity)) return
+    updateOption
+      .mutateAsync({ key: CARD_OPACITY_OPTION, value: normalized })
+      .catch(() => setCardOpacity(normalizeCardOpacity(props.cardOpacity)))
   }
 
   /**
@@ -212,7 +259,7 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
    */
   const applyUploadedBackground = (url: string) => {
     form.setValue('backgroundImage', url, { shouldDirty: false })
-    previewTheme(url, backgroundPosition, glassCards)
+    previewTheme(url, backgroundPosition, glassCards, cardOpacity)
   }
 
   const handleBackgroundFileChange = async (
@@ -374,6 +421,44 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
               'Frosted card, popover, and sidebar surfaces on top of the background image.'
             )}
           />
+          <div className='space-y-2 lg:col-span-2'>
+            <div className='flex items-center justify-between'>
+              <label
+                htmlFor='site-theme-card-opacity'
+                className='text-sm font-medium leading-none'
+              >
+                {t('Card opacity')}
+              </label>
+              <span className='text-muted-foreground text-sm tabular-nums'>
+                {cardOpacity}%
+              </span>
+            </div>
+            <Slider
+              id='site-theme-card-opacity'
+              min={0}
+              max={100}
+              step={1}
+              value={[cardOpacity]}
+              disabled={
+                updateOption.isPending ||
+                !props.backgroundImage ||
+                !glassCards
+              }
+              onValueChange={(value) => {
+                const next = Array.isArray(value) ? value[0] : value
+                previewCardOpacity(next)
+              }}
+              onValueCommitted={(value) => {
+                const next = Array.isArray(value) ? value[0] : value
+                commitCardOpacity(next)
+              }}
+            />
+            <p className='text-muted-foreground text-xs'>
+              {t(
+                'Opacity of the glass panels (cards, popovers, sidebar). Lower values let more of the background image show through.'
+              )}
+            </p>
+          </div>
         </SettingsForm>
       </Form>
     </SettingsSection>

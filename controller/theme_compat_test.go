@@ -56,12 +56,14 @@ func TestGetStatusExposesSiteTheme(t *testing.T) {
 		"theme.background_image":    "https://cdn.example.com/glass.png",
 		"theme.background_position": "left top",
 		"theme.glass_cards":         "true",
+		"theme.card_opacity":        "42",
 	}))
 	t.Cleanup(func() {
 		require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
 			"theme.background_image":    "",
 			"theme.background_position": "",
 			"theme.glass_cards":         "true",
+			"theme.card_opacity":        "0",
 		}))
 	})
 
@@ -78,6 +80,7 @@ func TestGetStatusExposesSiteTheme(t *testing.T) {
 				BackgroundImage    string `json:"background_image"`
 				BackgroundPosition string `json:"background_position"`
 				GlassCards         bool   `json:"glass_cards"`
+				CardOpacity        int    `json:"card_opacity"`
 			} `json:"site_theme"`
 		} `json:"data"`
 	}
@@ -86,6 +89,33 @@ func TestGetStatusExposesSiteTheme(t *testing.T) {
 	assert.Equal(t, "https://cdn.example.com/glass.png", payload.Data.SiteTheme.BackgroundImage)
 	assert.Equal(t, "left top", payload.Data.SiteTheme.BackgroundPosition)
 	assert.True(t, payload.Data.SiteTheme.GlassCards)
+	assert.Equal(t, 42, payload.Data.SiteTheme.CardOpacity)
+}
+
+func TestValidateThemeCardOpacity(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{name: "empty ok", value: "", valid: true},
+		{name: "zero ok", value: "0", valid: true},
+		{name: "mid", value: "55", valid: true},
+		{name: "hundred", value: "100", valid: true},
+		{name: "over", value: "101", valid: false},
+		{name: "negative", value: "-1", valid: false},
+		{name: "non numeric", value: "abc", valid: false},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := theme_setting.ValidateCardOpacity(testCase.value)
+			if testCase.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }
 
 func TestValidateThemeBackgroundPosition(t *testing.T) {

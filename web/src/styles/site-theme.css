@@ -58,25 +58,39 @@ body[data-site-theme-background='true'] [data-slot='section-page-footer'] {
   background-color: transparent;
 }
 
+/* Glass panel opacity is admin-configurable via `theme.card_opacity` (0-100).
+ * `--site-theme-card-opacity` is set on `<body>` by site-theme.ts; fall back to
+ * 68 for a missing/legacy value. Applied to cards, popovers and the sidebar so
+ * one slider governs the whole glass surface set. */
 body[data-site-theme-glass='true'] [class~='bg-card'] {
-  background-color: color-mix(in oklch, var(--card) 68%, transparent);
+  background-color: color-mix(
+    in oklch,
+    var(--card) calc(var(--site-theme-card-opacity, 68) * 1%),
+    transparent
+  );
 }
 
 body[data-site-theme-glass='true'] [class~='bg-popover'] {
-  background-color: color-mix(in oklch, var(--popover) 78%, transparent);
+  background-color: color-mix(
+    in oklch,
+    var(--popover) calc(var(--site-theme-card-opacity, 68) * 1%),
+    transparent
+  );
 }
 
 body[data-site-theme-glass='true'] [class~='bg-sidebar'] {
-  background-color: color-mix(in oklch, var(--sidebar) 78%, transparent);
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar) calc(var(--site-theme-card-opacity, 68) * 1%),
+    transparent
+  );
 }
 
 /* Round + ring the desktop sidebar panel so it reads as a floating glass card
  * (the floating variant already rounds itself in Tailwind; the default inset
  * variant does not). The inset container has p-2, so rounding sits inside the
- * gap and the background image shows around it on every edge. The shared
- * `bg-sidebar` rule above stays fairly opaque for readability; this panel is
- * made noticeably more translucent so the blurred image actually reads through
- * it instead of looking like a solid block. */
+ * gap and the background image shows around it on every edge. It shares the
+ * configurable glass opacity so one slider governs every panel. */
 body[data-site-theme-glass='true']
   [data-slot='sidebar'][data-variant='inset']
   [data-slot='sidebar-inner'],
@@ -84,7 +98,11 @@ body[data-site-theme-glass='true']
   [data-slot='sidebar'][data-variant='floating']
   [data-slot='sidebar-inner'] {
   border-radius: var(--radius-lg, 0.75rem);
-  background-color: color-mix(in oklch, var(--sidebar) 45%, transparent);
+  background-color: color-mix(
+    in oklch,
+    var(--sidebar) calc(var(--site-theme-card-opacity, 68) * 1%),
+    transparent
+  );
   box-shadow: 0 6px 24px -12px oklch(0 0 0 / 0.25);
   outline: 1px solid color-mix(in oklch, var(--sidebar-border) 60%, transparent);
   outline-offset: -1px;

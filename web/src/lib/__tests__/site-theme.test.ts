@@ -22,10 +22,12 @@ import {
   applySiteTheme,
   DEFAULT_SITE_THEME,
   normalizeBackgroundPosition,
+  normalizeCardOpacity,
   readSiteTheme,
   sanitizeBackgroundImage,
   SITE_THEME_BACKGROUND_ATTRIBUTE,
   SITE_THEME_BACKGROUND_VARIABLE,
+  SITE_THEME_CARD_OPACITY_VARIABLE,
   SITE_THEME_GLASS_ATTRIBUTE,
   SITE_THEME_POSITION_VARIABLE,
 } from '@/lib/site-theme'
@@ -35,6 +37,7 @@ afterEach(() => {
   document.body.removeAttribute(SITE_THEME_GLASS_ATTRIBUTE)
   document.body.style.removeProperty(SITE_THEME_BACKGROUND_VARIABLE)
   document.body.style.removeProperty(SITE_THEME_POSITION_VARIABLE)
+  document.body.style.removeProperty(SITE_THEME_CARD_OPACITY_VARIABLE)
 })
 
 describe('sanitizeBackgroundImage', () => {
@@ -72,7 +75,9 @@ describe('readSiteTheme', () => {
     ).toEqual({
       backgroundImage: 'https://cdn.example.com/bg.png',
       backgroundPosition: 'right top',
+
       glassCards: false,
+      cardOpacity: 68,
     })
   })
 
@@ -96,7 +101,9 @@ describe('applySiteTheme', () => {
     applySiteTheme({
       backgroundImage: 'https://cdn.example.com/bg.png',
       backgroundPosition: 'center',
+
       glassCards: true,
+      cardOpacity: 68,
     })
 
     expect(document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)).toBe(
@@ -109,13 +116,18 @@ describe('applySiteTheme', () => {
     expect(
       document.body.style.getPropertyValue(SITE_THEME_POSITION_VARIABLE)
     ).toBe('center')
+    expect(
+      document.body.style.getPropertyValue(SITE_THEME_CARD_OPACITY_VARIABLE)
+    ).toBe('68')
   })
 
   test('applies a custom focus position', () => {
     applySiteTheme({
       backgroundImage: '/assets/bg.webp',
       backgroundPosition: 'left bottom',
+
       glassCards: true,
+      cardOpacity: 68,
     })
 
     expect(
@@ -127,7 +139,9 @@ describe('applySiteTheme', () => {
     applySiteTheme({
       backgroundImage: '/assets/bg.webp',
       backgroundPosition: 'center',
+
       glassCards: false,
+      cardOpacity: 68,
     })
 
     expect(document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)).toBe(
@@ -140,13 +154,17 @@ describe('applySiteTheme', () => {
     applySiteTheme({
       backgroundImage: 'https://cdn.example.com/bg.png',
       backgroundPosition: 'right top',
+
       glassCards: true,
+      cardOpacity: 68,
     })
 
     applySiteTheme({
       backgroundImage: '',
       backgroundPosition: 'center',
+
       glassCards: true,
+      cardOpacity: 68,
     })
 
     expect(
@@ -157,8 +175,25 @@ describe('applySiteTheme', () => {
       document.body.style.getPropertyValue(SITE_THEME_BACKGROUND_VARIABLE)
     ).toBe('')
     expect(
-      document.body.style.getPropertyValue(SITE_THEME_POSITION_VARIABLE)
+      document.body.style.getPropertyValue(SITE_THEME_CARD_OPACITY_VARIABLE)
     ).toBe('')
+  })
+})
+
+describe('normalizeCardOpacity', () => {
+  test.each([
+    [68, 68],
+    [0, 68],
+    [-5, 68],
+    [30, 30],
+    [100, 100],
+    [101, 100],
+    [55.6, 56],
+    [undefined, 68],
+    ['42', 42],
+    ['abc', 68],
+  ])('normalizes %s to %s', (input, expected) => {
+    expect(normalizeCardOpacity(input)).toBe(expected)
   })
 })
 

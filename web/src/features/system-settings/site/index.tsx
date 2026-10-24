@@ -41,6 +41,7 @@ const defaultSiteSettings: SiteSettings = {
   'theme.background_image': '',
   'theme.background_position': 'center',
   'theme.glass_cards': true,
+  'theme.card_opacity': 68,
   'storage.mode': 'auto',
   'storage.local_dir': '',
   's3.enabled': false,

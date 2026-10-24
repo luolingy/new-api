@@ -253,6 +253,9 @@ func validateOptionValue(key string, value string) error {
 	if key == "theme.background_position" {
 		return theme_setting.ValidateBackgroundPosition(value)
 	}
+	if key == "theme.card_opacity" {
+		return theme_setting.ValidateCardOpacity(value)
+	}
 	switch key {
 	case "s3.endpoint":
 		return s3_setting.ValidateEndpoint(value)

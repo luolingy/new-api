@@ -3,6 +3,7 @@ package theme_setting
 import (
 	"errors"
 	"net/url"
+	"strconv"
 	"strings"
 
 	"github.com/QuantumNous/new-api/setting/config"
@@ -22,12 +23,19 @@ type SiteTheme struct {
 	// chosen region visible when a narrow viewport crops it.
 	BackgroundPosition string `json:"background_position"`
 	GlassCards         bool   `json:"glass_cards"`
+	// CardOpacity is the opacity (0-100) of the glass panels (cards, popovers,
+	// the sidebar). Lower values let the background image show through more.
+	CardOpacity int `json:"card_opacity"`
 }
+
+// DefaultCardOpacity matches the historical hard-coded card opacity.
+const DefaultCardOpacity = 68
 
 var defaultSiteTheme = SiteTheme{
 	BackgroundImage:    "",
 	BackgroundPosition: DefaultBackgroundPosition,
 	GlassCards:         true,
+	CardOpacity:        DefaultCardOpacity,
 }
 
 // DefaultBackgroundPosition centers the image on both axes.
@@ -80,6 +88,35 @@ func ValidateBackgroundPosition(value string) error {
 		return nil
 	}
 	return errors.New("背景图片焦点位置无效")
+}
+
+// NormalizedCardOpacity returns the stored opacity clamped to 0-100, falling
+// back to the default when it is unset (0 is a valid "fully transparent" value,
+// but an absent option also reads as 0, so treat it as the default instead).
+func (s SiteTheme) NormalizedCardOpacity() int {
+	if s.CardOpacity <= 0 {
+		return DefaultCardOpacity
+	}
+	if s.CardOpacity > 100 {
+		return 100
+	}
+	return s.CardOpacity
+}
+
+// ValidateCardOpacity accepts an empty value or an integer between 0 and 100.
+func ValidateCardOpacity(value string) error {
+	trimmed := strings.TrimSpace(value)
+	if trimmed == "" {
+		return nil
+	}
+	opacity, err := strconv.Atoi(trimmed)
+	if err != nil {
+		return errors.New("卡片不透明度必须是 0 到 100 的整数")
+	}
+	if opacity < 0 || opacity > 100 {
+		return errors.New("卡片不透明度必须是 0 到 100 的整数")
+	}
+	return nil
 }
 
 // ValidateBackgroundImageURL accepts only absolute http(s) URLs or a

@@ -38,6 +38,8 @@ export type SiteTheme = {
   backgroundPosition: string
   /** Frosted card/popover/sidebar surfaces on top of the background image. */
   glassCards: boolean
+  /** Opacity (0-100) of the glass panels; lower shows more of the image. */
+  cardOpacity: number
 }
 
 /** Allowed focus presets mapped to CSS background-position values. */
@@ -58,16 +60,28 @@ export type SiteThemeBackgroundPosition =
 
 export const DEFAULT_BACKGROUND_POSITION: SiteThemeBackgroundPosition = 'center'
 
+/** Matches the backend default for the glass panel opacity. */
+export const DEFAULT_CARD_OPACITY = 68
+
 export const DEFAULT_SITE_THEME: SiteTheme = {
   backgroundImage: '',
   backgroundPosition: DEFAULT_BACKGROUND_POSITION,
   glassCards: true,
+  cardOpacity: DEFAULT_CARD_OPACITY,
 }
 
 export const SITE_THEME_BACKGROUND_ATTRIBUTE = 'data-site-theme-background'
 export const SITE_THEME_GLASS_ATTRIBUTE = 'data-site-theme-glass'
 export const SITE_THEME_BACKGROUND_VARIABLE = '--site-theme-background-image'
 export const SITE_THEME_POSITION_VARIABLE = '--site-theme-background-position'
+export const SITE_THEME_CARD_OPACITY_VARIABLE = '--site-theme-card-opacity'
+
+/** Clamp an arbitrary value to an integer 0-100, defaulting when unset. */
+export function normalizeCardOpacity(value: unknown): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(parsed) || parsed <= 0) return DEFAULT_CARD_OPACITY
+  return Math.min(100, Math.max(0, Math.round(parsed)))
+}
 
 /** Normalize an arbitrary value to a supported focus preset. */
 export function normalizeBackgroundPosition(
@@ -119,6 +133,7 @@ export function readSiteTheme(
     backgroundImage: sanitizeBackgroundImage(payload.background_image),
     backgroundPosition: normalizeBackgroundPosition(payload.background_position),
     glassCards: toGlassCards(payload.glass_cards),
+    cardOpacity: normalizeCardOpacity(payload.card_opacity),
   }
 }
 
@@ -143,10 +158,15 @@ export function applySiteTheme(theme: SiteTheme, doc?: Document): void {
       SITE_THEME_POSITION_VARIABLE,
       normalizeBackgroundPosition(theme.backgroundPosition)
     )
+    body.style.setProperty(
+      SITE_THEME_CARD_OPACITY_VARIABLE,
+      String(normalizeCardOpacity(theme.cardOpacity))
+    )
   } else {
     body.removeAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
     body.style.removeProperty(SITE_THEME_BACKGROUND_VARIABLE)
     body.style.removeProperty(SITE_THEME_POSITION_VARIABLE)
+    body.style.removeProperty(SITE_THEME_CARD_OPACITY_VARIABLE)
   }
 
   if (theme.backgroundImage && theme.glassCards) {
