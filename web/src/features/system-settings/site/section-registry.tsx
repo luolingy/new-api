@@ -63,6 +63,7 @@ const SITE_SECTIONS = [
     build: (settings: SiteSettings) => (
       <SiteThemeSection
         backgroundImage={settings['theme.background_image']}
+        backgroundPosition={settings['theme.background_position']}
         glassCards={settings['theme.glass_cards']}
       />
     ),

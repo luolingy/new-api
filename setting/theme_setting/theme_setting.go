@@ -17,12 +17,35 @@ const maxBackgroundImageURLLength = 2048
 // while a configured URL enables the glass card treatment on top of it.
 type SiteTheme struct {
 	BackgroundImage string `json:"background_image"`
-	GlassCards      bool   `json:"glass_cards"`
+	// BackgroundPosition is a CSS background-position keyword pair (e.g.
+	// "center", "center top", "left center"). It lets a landscape image keep a
+	// chosen region visible when a narrow viewport crops it.
+	BackgroundPosition string `json:"background_position"`
+	GlassCards         bool   `json:"glass_cards"`
 }
 
 var defaultSiteTheme = SiteTheme{
-	BackgroundImage: "",
-	GlassCards:      true,
+	BackgroundImage:    "",
+	BackgroundPosition: DefaultBackgroundPosition,
+	GlassCards:         true,
+}
+
+// DefaultBackgroundPosition centers the image on both axes.
+const DefaultBackgroundPosition = "center"
+
+// allowedBackgroundPositions is the fixed set of values the admin UI can pick.
+// Restricting to keywords keeps the value safe inside an inline style and avoids
+// arbitrary CSS injection through the option row.
+var allowedBackgroundPositions = map[string]struct{}{
+	"center":        {},
+	"left top":      {},
+	"center top":    {},
+	"right top":     {},
+	"left center":   {},
+	"right center":  {},
+	"left bottom":   {},
+	"center bottom": {},
+	"right bottom":  {},
 }
 
 var siteTheme = defaultSiteTheme
@@ -34,6 +57,29 @@ func init() {
 // GetSiteTheme returns a snapshot of the active site theme settings.
 func GetSiteTheme() SiteTheme {
 	return siteTheme
+}
+
+// NormalizedBackgroundPosition returns the stored position, falling back to the
+// default when it is empty or not one of the accepted keywords.
+func (s SiteTheme) NormalizedBackgroundPosition() string {
+	position := strings.ToLower(strings.TrimSpace(s.BackgroundPosition))
+	if _, ok := allowedBackgroundPositions[position]; ok {
+		return position
+	}
+	return DefaultBackgroundPosition
+}
+
+// ValidateBackgroundPosition accepts an empty value (meaning center) or one of
+// the allowed keyword pairs.
+func ValidateBackgroundPosition(value string) error {
+	position := strings.ToLower(strings.TrimSpace(value))
+	if position == "" {
+		return nil
+	}
+	if _, ok := allowedBackgroundPositions[position]; ok {
+		return nil
+	}
+	return errors.New("背景图片焦点位置无效")
 }
 
 // ValidateBackgroundImageURL accepts only absolute http(s) URLs or a

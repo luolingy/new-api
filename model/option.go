@@ -250,6 +250,9 @@ func validateOptionValue(key string, value string) error {
 	if key == "theme.background_image" {
 		return theme_setting.ValidateBackgroundImageURL(value)
 	}
+	if key == "theme.background_position" {
+		return theme_setting.ValidateBackgroundPosition(value)
+	}
 	switch key {
 	case "s3.endpoint":
 		return s3_setting.ValidateEndpoint(value)

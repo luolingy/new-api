@@ -36,7 +36,11 @@ import {
 } from '@/components/ui/form'
 import { Input } from '@/components/ui/input'
 import { handleServerError } from '@/lib/handle-server-error'
-import { applySiteTheme, sanitizeBackgroundImage } from '@/lib/site-theme'
+import {
+  applySiteTheme,
+  normalizeBackgroundPosition,
+  sanitizeBackgroundImage,
+} from '@/lib/site-theme'
 import { STATUS_QUERY_KEY, STATUS_STORAGE_KEY } from '@/lib/status-query'
 
 import { removeThemeBackground, uploadThemeBackground } from '../api'
@@ -50,6 +54,7 @@ import { useUpdateOption } from '../hooks/use-update-option'
 
 type SiteThemeSectionProps = {
   backgroundImage: string
+  backgroundPosition: string
   glassCards: boolean
 }
 
@@ -58,13 +63,37 @@ type SiteThemeFormValues = {
 }
 
 const BACKGROUND_IMAGE_OPTION = 'theme.background_image'
+const BACKGROUND_POSITION_OPTION = 'theme.background_position'
 const GLASS_CARDS_OPTION = 'theme.glass_cards'
+
+/** Focus presets in the order they render in the 3x3 picker. */
+const POSITION_GRID: string[][] = [
+  ['left top', 'center top', 'right top'],
+  ['left center', 'center', 'right center'],
+  ['left bottom', 'center bottom', 'right bottom'],
+]
+
+/** English source strings used as i18n keys for the focus picker buttons. */
+const POSITION_LABEL_KEYS: Record<string, string> = {
+  'left top': 'Top left',
+  'center top': 'Top center',
+  'right top': 'Top right',
+  'left center': 'Left center',
+  center: 'Center',
+  'right center': 'Right center',
+  'left bottom': 'Bottom left',
+  'center bottom': 'Bottom center',
+  'right bottom': 'Bottom right',
+}
 
 export function SiteThemeSection(props: SiteThemeSectionProps) {
   const { t } = useTranslation()
   const queryClient = useQueryClient()
   const updateOption = useUpdateOption()
   const [glassCards, setGlassCards] = useState(props.glassCards)
+  const [backgroundPosition, setBackgroundPosition] = useState(
+    normalizeBackgroundPosition(props.backgroundPosition)
+  )
   const [uploading, setUploading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const form = useForm<SiteThemeFormValues>({
@@ -92,6 +121,10 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     setGlassCards(props.glassCards)
   }, [props.glassCards])
 
+  useEffect(() => {
+    setBackgroundPosition(normalizeBackgroundPosition(props.backgroundPosition))
+  }, [props.backgroundPosition])
+
   /**
    * Persist the saved theme straight into the shared `/api/status` cache and
    * its localStorage snapshot, then apply it to `<body>`.
@@ -103,9 +136,14 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
    * disappears" symptom. Seeding the cache first guarantees every later status
    * apply observes the value we just saved.
    */
-  const seedStatusTheme = (backgroundImage: string, glassCardsEnabled: boolean) => {
+  const seedStatusTheme = (
+    backgroundImage: string,
+    backgroundPos: string,
+    glassCardsEnabled: boolean
+  ) => {
     const siteTheme = {
       background_image: backgroundImage,
+      background_position: backgroundPos,
       glass_cards: glassCardsEnabled,
     }
     queryClient.setQueryData<Record<string, unknown> | null>(
@@ -124,6 +162,15 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     }
   }
 
+  const previewTheme = (image: string, position: string, glass: boolean) => {
+    seedStatusTheme(image, position, glass)
+    applySiteTheme({
+      backgroundImage: image,
+      backgroundPosition: position,
+      glassCards: glass,
+    })
+  }
+
   const onSubmit = async (values: SiteThemeFormValues) => {
     const normalized = values.backgroundImage.trim()
     if (normalized === props.backgroundImage) return
@@ -133,8 +180,7 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     })
     // Pin the saved value before previewing so a racing stale status response
     // cannot clear it back to the previous image.
-    seedStatusTheme(normalized, glassCards)
-    applySiteTheme({ backgroundImage: normalized, glassCards })
+    previewTheme(normalized, backgroundPosition, glassCards)
   }
 
   const handleGlassCardsChange = (checked: boolean) => {
@@ -144,14 +190,19 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
     // control keeps matching the persisted option.
     updateOption
       .mutateAsync({ key: GLASS_CARDS_OPTION, value: checked })
-      .then(() => {
-        seedStatusTheme(props.backgroundImage, checked)
-        applySiteTheme({
-          backgroundImage: props.backgroundImage,
-          glassCards: checked,
-        })
-      })
+      .then(() => previewTheme(props.backgroundImage, backgroundPosition, checked))
       .catch(() => setGlassCards(previousGlassCards))
+  }
+
+  const handleBackgroundPositionChange = (next: string) => {
+    const normalized = normalizeBackgroundPosition(next)
+    if (normalized === backgroundPosition) return
+    const previous = backgroundPosition
+    setBackgroundPosition(normalized)
+    updateOption
+      .mutateAsync({ key: BACKGROUND_POSITION_OPTION, value: normalized })
+      .then(() => previewTheme(props.backgroundImage, normalized, glassCards))
+      .catch(() => setBackgroundPosition(previous))
   }
 
   /**
@@ -161,8 +212,7 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
    */
   const applyUploadedBackground = (url: string) => {
     form.setValue('backgroundImage', url, { shouldDirty: false })
-    seedStatusTheme(url, glassCards)
-    applySiteTheme({ backgroundImage: url, glassCards })
+    previewTheme(url, backgroundPosition, glassCards)
   }
 
   const handleBackgroundFileChange = async (
@@ -272,6 +322,48 @@ export function SiteThemeSection(props: SiteThemeSectionProps) {
               </FormItem>
             )}
           />
+          <div className='space-y-2 lg:col-span-2'>
+            <div className='text-sm font-medium leading-none'>
+              {t('Background focus point')}
+            </div>
+            <div className='flex flex-wrap items-center gap-3'>
+              <div
+                className='grid grid-cols-3 gap-1 rounded-lg border p-1'
+                role='group'
+                aria-label={t('Background focus point')}
+              >
+                {POSITION_GRID.flat().map((position) => {
+                  const selected = position === backgroundPosition
+                  return (
+                    <button
+                      key={position}
+                      type='button'
+                      aria-label={t(POSITION_LABEL_KEYS[position])}
+                      aria-pressed={selected}
+                      disabled={updateOption.isPending || !props.backgroundImage}
+                      onClick={() => handleBackgroundPositionChange(position)}
+                      className={`flex size-9 items-center justify-center rounded-md border transition-colors ${
+                        selected
+                          ? 'border-primary bg-primary/10'
+                          : 'border-border/60 hover:bg-muted'
+                      }`}
+                    >
+                      <span
+                        className={`size-2 rounded-full ${
+                          selected ? 'bg-primary' : 'bg-muted-foreground/50'
+                        }`}
+                      />
+                    </button>
+                  )
+                })}
+              </div>
+              <p className='text-muted-foreground max-w-xs text-xs'>
+                {t(
+                  'Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.'
+                )}
+              </p>
+            </div>
+          </div>
           <SettingsSwitchField
             controlId='site-theme-glass-cards'
             checked={glassCards}

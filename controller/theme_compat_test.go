@@ -53,13 +53,15 @@ func TestGetStatusExposesSiteTheme(t *testing.T) {
 	common.OptionMap = map[string]string{}
 	t.Cleanup(func() { common.OptionMap = previousMap })
 	require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
-		"theme.background_image": "https://cdn.example.com/glass.png",
-		"theme.glass_cards":      "true",
+		"theme.background_image":    "https://cdn.example.com/glass.png",
+		"theme.background_position": "left top",
+		"theme.glass_cards":         "true",
 	}))
 	t.Cleanup(func() {
 		require.NoError(t, config.GlobalConfig.LoadFromDB(map[string]string{
-			"theme.background_image": "",
-			"theme.glass_cards":      "true",
+			"theme.background_image":    "",
+			"theme.background_position": "",
+			"theme.glass_cards":         "true",
 		}))
 	})
 
@@ -73,15 +75,42 @@ func TestGetStatusExposesSiteTheme(t *testing.T) {
 		Success bool `json:"success"`
 		Data    struct {
 			SiteTheme struct {
-				BackgroundImage string `json:"background_image"`
-				GlassCards      bool   `json:"glass_cards"`
+				BackgroundImage    string `json:"background_image"`
+				BackgroundPosition string `json:"background_position"`
+				GlassCards         bool   `json:"glass_cards"`
 			} `json:"site_theme"`
 		} `json:"data"`
 	}
 	require.NoError(t, common.Unmarshal(response.Body.Bytes(), &payload))
 	assert.True(t, payload.Success)
 	assert.Equal(t, "https://cdn.example.com/glass.png", payload.Data.SiteTheme.BackgroundImage)
+	assert.Equal(t, "left top", payload.Data.SiteTheme.BackgroundPosition)
 	assert.True(t, payload.Data.SiteTheme.GlassCards)
+}
+
+func TestValidateThemeBackgroundPosition(t *testing.T) {
+	cases := []struct {
+		name  string
+		value string
+		valid bool
+	}{
+		{name: "empty falls back to center", value: "", valid: true},
+		{name: "center", value: "center", valid: true},
+		{name: "left top", value: "left top", valid: true},
+		{name: "case and space normalized", value: "  Right Bottom ", valid: true},
+		{name: "arbitrary css rejected", value: "url(evil)", valid: false},
+		{name: "percentage rejected", value: "20% 80%", valid: false},
+	}
+	for _, testCase := range cases {
+		t.Run(testCase.name, func(t *testing.T) {
+			err := theme_setting.ValidateBackgroundPosition(testCase.value)
+			if testCase.valid {
+				assert.NoError(t, err)
+			} else {
+				assert.Error(t, err)
+			}
+		})
+	}
 }
 
 func TestValidateThemeBackgroundImageURL(t *testing.T) {

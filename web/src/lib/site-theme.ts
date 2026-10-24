@@ -30,18 +30,54 @@ For commercial licensing, please contact support@quantumnous.com
 export type SiteTheme = {
   /** Absolute http(s) URL or root-relative path. Empty disables the theme. */
   backgroundImage: string
+  /**
+   * CSS background-position keyword pair controlling which region of the image
+   * stays visible when the viewport crops it (e.g. a landscape image on a
+   * portrait screen). Restricted to the presets below.
+   */
+  backgroundPosition: string
   /** Frosted card/popover/sidebar surfaces on top of the background image. */
   glassCards: boolean
 }
 
+/** Allowed focus presets mapped to CSS background-position values. */
+export const SITE_THEME_BACKGROUND_POSITIONS = [
+  'left top',
+  'center top',
+  'right top',
+  'left center',
+  'center',
+  'right center',
+  'left bottom',
+  'center bottom',
+  'right bottom',
+] as const
+
+export type SiteThemeBackgroundPosition =
+  (typeof SITE_THEME_BACKGROUND_POSITIONS)[number]
+
+export const DEFAULT_BACKGROUND_POSITION: SiteThemeBackgroundPosition = 'center'
+
 export const DEFAULT_SITE_THEME: SiteTheme = {
   backgroundImage: '',
+  backgroundPosition: DEFAULT_BACKGROUND_POSITION,
   glassCards: true,
 }
 
 export const SITE_THEME_BACKGROUND_ATTRIBUTE = 'data-site-theme-background'
 export const SITE_THEME_GLASS_ATTRIBUTE = 'data-site-theme-glass'
 export const SITE_THEME_BACKGROUND_VARIABLE = '--site-theme-background-image'
+export const SITE_THEME_POSITION_VARIABLE = '--site-theme-background-position'
+
+/** Normalize an arbitrary value to a supported focus preset. */
+export function normalizeBackgroundPosition(
+  value: unknown
+): SiteThemeBackgroundPosition {
+  if (typeof value !== 'string') return DEFAULT_BACKGROUND_POSITION
+  const normalized = value.trim().toLowerCase().replaceAll(/\s+/g, ' ')
+  const match = SITE_THEME_BACKGROUND_POSITIONS.find((p) => p === normalized)
+  return match ?? DEFAULT_BACKGROUND_POSITION
+}
 
 /**
  * Reject anything that cannot be placed safely inside a CSS `url("...")` token
@@ -81,6 +117,7 @@ export function readSiteTheme(
   const payload = raw as Record<string, unknown>
   return {
     backgroundImage: sanitizeBackgroundImage(payload.background_image),
+    backgroundPosition: normalizeBackgroundPosition(payload.background_position),
     glassCards: toGlassCards(payload.glass_cards),
   }
 }
@@ -102,9 +139,14 @@ export function applySiteTheme(theme: SiteTheme, doc?: Document): void {
       SITE_THEME_BACKGROUND_VARIABLE,
       `url("${theme.backgroundImage}")`
     )
+    body.style.setProperty(
+      SITE_THEME_POSITION_VARIABLE,
+      normalizeBackgroundPosition(theme.backgroundPosition)
+    )
   } else {
     body.removeAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
     body.style.removeProperty(SITE_THEME_BACKGROUND_VARIABLE)
+    body.style.removeProperty(SITE_THEME_POSITION_VARIABLE)
   }
 
   if (theme.backgroundImage && theme.glassCards) {

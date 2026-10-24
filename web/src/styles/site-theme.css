@@ -39,14 +39,18 @@ body[data-site-theme-background='true'] {
   );
   background-image:
     var(--site-theme-image-overlay), var(--site-theme-background-image);
-  background-position: center;
+  background-position: var(--site-theme-background-position, center);
   background-size: cover;
   background-attachment: fixed;
   background-repeat: no-repeat;
 }
 
 /* The app shell paints opaque page surfaces over the body; let the image show
- * through them while keeping cards and overlays glassy. */
+ * through them while keeping cards and overlays glassy. The sidebar wrapper
+ * carries `bg-sidebar` in the default `inset` layout, so it must be cleared too
+ * or the whole desktop shell hides the image (mobile uses a Sheet overlay and
+ * was unaffected). */
+body[data-site-theme-background='true'] [data-slot='sidebar-wrapper'],
 body[data-site-theme-background='true'] [data-slot='sidebar-inset'],
 body[data-site-theme-background='true'] [data-slot='public-layout'],
 body[data-site-theme-background='true'] [data-slot='section'],

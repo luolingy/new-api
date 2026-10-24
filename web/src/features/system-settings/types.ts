@@ -155,6 +155,7 @@ export type SiteSettings = {
   HeaderNavModules: string
   SidebarModulesAdmin: string
   'theme.background_image': string
+  'theme.background_position': string
   'theme.glass_cards': boolean
   'storage.mode': string
   'storage.local_dir': string

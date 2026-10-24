@@ -21,17 +21,20 @@ import { afterEach, describe, expect, test } from 'vitest'
 import {
   applySiteTheme,
   DEFAULT_SITE_THEME,
+  normalizeBackgroundPosition,
   readSiteTheme,
   sanitizeBackgroundImage,
   SITE_THEME_BACKGROUND_ATTRIBUTE,
   SITE_THEME_BACKGROUND_VARIABLE,
   SITE_THEME_GLASS_ATTRIBUTE,
+  SITE_THEME_POSITION_VARIABLE,
 } from '@/lib/site-theme'
 
 afterEach(() => {
   document.body.removeAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
   document.body.removeAttribute(SITE_THEME_GLASS_ATTRIBUTE)
   document.body.style.removeProperty(SITE_THEME_BACKGROUND_VARIABLE)
+  document.body.style.removeProperty(SITE_THEME_POSITION_VARIABLE)
 })
 
 describe('sanitizeBackgroundImage', () => {
@@ -62,11 +65,13 @@ describe('readSiteTheme', () => {
       readSiteTheme({
         site_theme: {
           background_image: 'https://cdn.example.com/bg.png',
+          background_position: 'right top',
           glass_cards: false,
         },
       })
     ).toEqual({
       backgroundImage: 'https://cdn.example.com/bg.png',
+      backgroundPosition: 'right top',
       glassCards: false,
     })
   })
@@ -90,6 +95,7 @@ describe('applySiteTheme', () => {
   test('marks the body and exposes the background image variable', () => {
     applySiteTheme({
       backgroundImage: 'https://cdn.example.com/bg.png',
+      backgroundPosition: 'center',
       glassCards: true,
     })
 
@@ -100,11 +106,27 @@ describe('applySiteTheme', () => {
     expect(
       document.body.style.getPropertyValue(SITE_THEME_BACKGROUND_VARIABLE)
     ).toContain('https://cdn.example.com/bg.png')
+    expect(
+      document.body.style.getPropertyValue(SITE_THEME_POSITION_VARIABLE)
+    ).toBe('center')
+  })
+
+  test('applies a custom focus position', () => {
+    applySiteTheme({
+      backgroundImage: '/assets/bg.webp',
+      backgroundPosition: 'left bottom',
+      glassCards: true,
+    })
+
+    expect(
+      document.body.style.getPropertyValue(SITE_THEME_POSITION_VARIABLE)
+    ).toBe('left bottom')
   })
 
   test('keeps the background image but drops glass surfaces when disabled', () => {
     applySiteTheme({
       backgroundImage: '/assets/bg.webp',
+      backgroundPosition: 'center',
       glassCards: false,
     })
 
@@ -117,10 +139,15 @@ describe('applySiteTheme', () => {
   test('clears every attribute when the background image is empty', () => {
     applySiteTheme({
       backgroundImage: 'https://cdn.example.com/bg.png',
+      backgroundPosition: 'right top',
       glassCards: true,
     })
 
-    applySiteTheme({ backgroundImage: '', glassCards: true })
+    applySiteTheme({
+      backgroundImage: '',
+      backgroundPosition: 'center',
+      glassCards: true,
+    })
 
     expect(
       document.body.getAttribute(SITE_THEME_BACKGROUND_ATTRIBUTE)
@@ -129,5 +156,22 @@ describe('applySiteTheme', () => {
     expect(
       document.body.style.getPropertyValue(SITE_THEME_BACKGROUND_VARIABLE)
     ).toBe('')
+    expect(
+      document.body.style.getPropertyValue(SITE_THEME_POSITION_VARIABLE)
+    ).toBe('')
+  })
+})
+
+describe('normalizeBackgroundPosition', () => {
+  test.each([
+    ['center', 'center'],
+    ['  LEFT  TOP ', 'left top'],
+    ['right bottom', 'right bottom'],
+    ['20% 80%', 'center'],
+    ['', 'center'],
+    [undefined, 'center'],
+    ['url(evil)', 'center'],
+  ])('normalizes %s to %s', (input, expected) => {
+    expect(normalizeBackgroundPosition(input)).toBe(expected)
   })
 })

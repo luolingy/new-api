@@ -68,8 +68,9 @@ func GetStatus(c *gin.Context) {
 		"telegram_bot_name":           common.TelegramBotName,
 		"theme":                       "default",
 		"site_theme": gin.H{
-			"background_image": siteTheme.BackgroundImage,
-			"glass_cards":      siteTheme.GlassCards,
+			"background_image":    siteTheme.BackgroundImage,
+			"background_position": siteTheme.NormalizedBackgroundPosition(),
+			"glass_cards":         siteTheme.GlassCards,
 		},
 		"system_name":        common.SystemName,
 		"logo":               common.Logo,

@@ -39,6 +39,7 @@ const defaultSiteSettings: SiteSettings = {
   HeaderNavModules: '',
   SidebarModulesAdmin: '',
   'theme.background_image': '',
+  'theme.background_position': 'center',
   'theme.glass_cards': true,
   'storage.mode': 'auto',
   'storage.local_dir': '',
