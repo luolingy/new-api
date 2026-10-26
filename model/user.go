@@ -209,6 +209,37 @@ func GetUserAvatar(userId int) (string, error) {
 	return user.GetSetting().AvatarURL, nil
 }
 
+// GetUserAvatarsByIds returns a map of userId -> avatar URL for the given ids.
+// A single query loads only the id and setting columns; users without a
+// configured avatar map to an empty string and are omitted.
+func GetUserAvatarsByIds(ids []int) map[int]string {
+	result := make(map[int]string, len(ids))
+	if len(ids) == 0 {
+		return result
+	}
+	type idSetting struct {
+		Id      int
+		Setting string
+	}
+	var rows []idSetting
+	if err := DB.Model(&User{}).Select("id", "setting").Where("id IN ?", ids).Find(&rows).Error; err != nil {
+		return result
+	}
+	for _, row := range rows {
+		if row.Setting == "" {
+			continue
+		}
+		var setting dto.UserSetting
+		if err := common.Unmarshal([]byte(row.Setting), &setting); err != nil {
+			continue
+		}
+		if setting.AvatarURL != "" {
+			result[row.Id] = setting.AvatarURL
+		}
+	}
+	return result
+}
+
 // UpdateUserAvatar stores the avatar URL in the user settings. Passing an empty
 // value clears the avatar.
 func UpdateUserAvatar(userId int, avatarURL string) error {

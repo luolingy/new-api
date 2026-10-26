@@ -23,7 +23,7 @@ import { useTranslation } from 'react-i18next'
 
 import { GroupBadge } from '@/components/group-badge'
 import { StatusBadge, type StatusBadgeProps } from '@/components/status-badge'
-import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import {
   Popover,
   PopoverContent,
@@ -577,6 +577,9 @@ export function useCommonLogsColumns(
                 }}
               >
                 <Avatar className='ring-border/60 size-6 ring-1 max-sm:hidden'>
+                  {sensitiveVisible && log.avatar_url && (
+                    <AvatarImage src={log.avatar_url} alt={log.username} />
+                  )}
                   <AvatarFallback
                     className={cn(
                       'text-[11px] font-semibold',

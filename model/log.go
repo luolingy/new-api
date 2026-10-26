@@ -76,6 +76,9 @@ type Log struct {
 	RequestId         string `json:"request_id,omitempty" gorm:"type:varchar(64);index:idx_logs_request_id;default:''"`
 	UpstreamRequestId string `json:"upstream_request_id,omitempty" gorm:"type:varchar(128);index:idx_logs_upstream_request_id;default:''"`
 	Other             string `json:"other"`
+	// AvatarURL is a transient display-only field populated when a log list is
+	// rendered for the usage-logs table. It is never persisted.
+	AvatarURL string `json:"avatar_url,omitempty" gorm:"-"`
 }
 
 // don't use iota, avoid change log type value
@@ -108,6 +111,40 @@ func clickHouseLogOrder(prefix string) string {
 func assignDisplayLogIds(logs []*Log, startIdx int) {
 	for i := range logs {
 		logs[i].Id = startIdx + i + 1
+	}
+}
+
+// AttachLogAvatars fills the transient AvatarURL field of each log row from the
+// owners' current settings, using a single query over the distinct user ids on
+// the page. Failures are ignored: a missing avatar simply falls back to the
+// client-rendered initials badge.
+func AttachLogAvatars(logs []*Log) {
+	if len(logs) == 0 {
+		return
+	}
+	ids := make([]int, 0, len(logs))
+	seen := make(map[int]struct{}, len(logs))
+	for _, log := range logs {
+		if log == nil || log.UserId == 0 {
+			continue
+		}
+		if _, ok := seen[log.UserId]; ok {
+			continue
+		}
+		seen[log.UserId] = struct{}{}
+		ids = append(ids, log.UserId)
+	}
+	if len(ids) == 0 {
+		return
+	}
+	avatars := GetUserAvatarsByIds(ids)
+	for _, log := range logs {
+		if log == nil {
+			continue
+		}
+		if url, ok := avatars[log.UserId]; ok {
+			log.AvatarURL = url
+		}
 	}
 }
 
