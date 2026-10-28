@@ -46,3 +46,6 @@ go.work
 go.work.sum
 *.exe.bak
 *.bak
+
+# Local vendored app checkout accidentally committed as a (broken) submodule.
+temp/gpt_image_playground/
