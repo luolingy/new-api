@@ -7532,7 +7532,7 @@
     "Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.": "Phần nào của ảnh vẫn hiển thị khi màn hình cắt ảnh. Chọn phía quan trọng đối với ảnh ngang trên màn hình dọc.",
     "You can add at most {{count}} reference images": "Bạn chỉ có thể thêm tối đa {{count}} ảnh tham chiếu",
     "You can attach at most {{count}} reference images": "Chỉ có thể đính kèm tối đa {{count}} ảnh tham chiếu",
-    "Per-key rate limit 429 duration": "Per-key rate limit 429 duration",
-    "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window."
+    "Per-key rate limit 429 duration": "Thời gian chờ 429 cho giới hạn theo khóa (giây)",
+    "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "Thời gian mà phản hồi 429 khi giới hạn RPM/TPM theo khóa yêu cầu bên gọi chờ. 0 sẽ trả về thời gian còn lại của cửa sổ giới hạn."
   }
 }
