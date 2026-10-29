@@ -189,6 +189,7 @@ export function LogStatCards(props: LogStatCardsProps) {
               role='group'
               aria-label={it.title}
               aria-busy={loading}
+              title={it.desc}
               className={cn(
                 'min-w-0 px-2.5 py-1.5 sm:px-3 sm:py-4 xl:px-4',
                 idx === items.length - 1 &&

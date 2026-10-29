@@ -82,7 +82,9 @@ export function useModelStatCardsConfig(): StatCardConfig[] {
     {
       key: 'cacheCreation',
       title: t('Cache Write'),
-      description: t('Statistical tokens'),
+      description: t(
+        'Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.'
+      ),
       icon: Upload,
       iconTone: 'chart-5',
       getValue: (stat) => stat?.cacheCreation ?? 0,
