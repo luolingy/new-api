@@ -7531,6 +7531,8 @@
     "Where uploaded avatars and the site background are saved.": "Where uploaded avatars and the site background are saved.",
     "Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.": "Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.",
     "You can add at most {{count}} reference images": "You can add at most {{count}} reference images",
-    "You can attach at most {{count}} reference images": "You can attach at most {{count}} reference images"
+    "You can attach at most {{count}} reference images": "You can attach at most {{count}} reference images",
+    "Per-key rate limit 429 duration": "Per-key rate limit 429 duration",
+    "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window."
   }
 }

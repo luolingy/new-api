@@ -72,6 +72,7 @@ const createRateLimitSchema = (t: (key: string) => string) =>
     ModelRequestRateLimitDurationMinutes: z.number().min(0),
     ModelRequestRateLimitCount: z.number().min(0).max(100000000),
     ModelRequestRateLimitSuccessCount: z.number().min(1).max(100000000),
+    TokenRateLimitRetryAfterSeconds: z.number().min(0).max(86400),
     ModelRequestRateLimitGroup: z
       .string()
       .optional()
@@ -239,6 +240,41 @@ export function RateLimitSection({ defaultValues }: RateLimitSectionProps) {
               )}
             />
           </div>
+
+          <FormField
+            control={form.control}
+            name='TokenRateLimitRetryAfterSeconds'
+            render={({ field }) => (
+              <FormItem>
+                <FormLabel>
+                  {t('Per-key rate limit 429 duration')}
+                </FormLabel>
+                <FormControl>
+                  <div className='flex items-center gap-2'>
+                    <Input
+                      type='number'
+                      min={0}
+                      max={86400}
+                      step={1}
+                      {...field}
+                      onChange={(e) =>
+                        field.onChange(Number.parseInt(e.target.value) || 0)
+                      }
+                    />
+                    <span className='text-muted-foreground text-sm'>
+                      {t('seconds')}
+                    </span>
+                  </div>
+                </FormControl>
+                <FormDescription>
+                  {t(
+                    'How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.'
+                  )}
+                </FormDescription>
+                <FormMessage />
+              </FormItem>
+            )}
+          />
 
           <FormField
             control={form.control}

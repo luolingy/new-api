@@ -25,6 +25,12 @@ var ModelRequestRateLimitSuccessCount = 1000
 var ModelRequestRateLimitGroup = map[string][2]int{}
 var ModelRequestRateLimitMutex sync.RWMutex
 
+// TokenRateLimitRetryAfterSeconds is how long a per-token TPM/RPM rejection
+// tells the caller to wait. 0 keeps the default behaviour of reporting the
+// remaining window, so the 429 duration follows the 60s limit window. A positive
+// value overrides that value and is what the Retry-After header advertises.
+var TokenRateLimitRetryAfterSeconds = 0
+
 func ModelRequestRateLimitGroup2JSONString() string {
 	ModelRequestRateLimitMutex.RLock()
 	defer ModelRequestRateLimitMutex.RUnlock()

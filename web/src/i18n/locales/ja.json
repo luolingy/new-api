@@ -7531,6 +7531,8 @@
     "Where uploaded avatars and the site background are saved.": "アップロードされたアバターとサイト背景の保存先です。",
     "Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.": "画面で画像が切り取られたときに表示する部分です。横長の画像を縦長の画面で表示する場合は重要な側を選んでください。",
     "You can add at most {{count}} reference images": "参照画像は最大 {{count}} 枚まで追加できます",
-    "You can attach at most {{count}} reference images": "参照画像は最大 {{count}} 枚まで添付できます"
+    "You can attach at most {{count}} reference images": "参照画像は最大 {{count}} 枚まで添付できます",
+    "Per-key rate limit 429 duration": "Per-key rate limit 429 duration",
+    "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window."
   }
 }

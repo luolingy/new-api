@@ -7531,6 +7531,8 @@
     "Where uploaded avatars and the site background are saved.": "上傳的頭像與站點背景圖儲存的位置。",
     "Which part of the image stays visible when the screen crops it. Pick the side that matters for a landscape image on a portrait screen.": "當螢幕裁切圖片時，顯示圖片的哪個部位。橫圖在直式螢幕上時，請選擇重要的那一側。",
     "You can add at most {{count}} reference images": "最多可新增 {{count}} 張參考圖",
-    "You can attach at most {{count}} reference images": "最多只能加入 {{count}} 張參考圖"
+    "You can attach at most {{count}} reference images": "最多只能加入 {{count}} 張參考圖",
+    "Per-key rate limit 429 duration": "Per-key rate limit 429 duration",
+    "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window."
   }
 }

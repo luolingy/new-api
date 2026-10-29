@@ -358,6 +358,26 @@ func RecordErrorLog(c *gin.Context, userId int, channelId int, modelName string,
 	}
 }
 
+// logOtherCacheWriteTokens returns the normalized cache-write total recorded in
+// a log entry. Text relays publish cache_write_tokens, while Claude relays
+// publish cache_creation_tokens plus an optional 5m/1h split, so the statistics
+// reader accepts both and never double counts the split against the total.
+func logOtherCacheWriteTokens(other *LogOther) int {
+	if other == nil {
+		return 0
+	}
+	if writeTokens, _ := other.public["cache_write_tokens"].(int); writeTokens > 0 {
+		return writeTokens
+	}
+	total, _ := other.public["cache_creation_tokens"].(int)
+	split5m, _ := other.public["cache_creation_tokens_5m"].(int)
+	split1h, _ := other.public["cache_creation_tokens_1h"].(int)
+	if split5m > 0 || split1h > 0 {
+		return max(total, split5m+split1h)
+	}
+	return total
+}
+
 type RecordConsumeLogParams struct {
 	ChannelId        int               `json:"channel_id"`
 	PromptTokens     int               `json:"prompt_tokens"`
@@ -426,9 +446,7 @@ func RecordConsumeLog(c *gin.Context, userId int, params RecordConsumeLogParams)
 		var cacheReadTokens, cacheCreationTokens int
 		if other != nil {
 			cacheReadTokens, _ = other.public["cache_tokens"].(int)
-			// The settlement path already normalizes the cache creation total.
-			// Do not add the 5m/1h breakdown again or infer tokens from prices.
-			cacheCreationTokens, _ = other.public["cache_write_tokens"].(int)
+			cacheCreationTokens = logOtherCacheWriteTokens(other)
 		}
 		LogQuotaData(QuotaDataLogParams{
 			UserID:              userId,

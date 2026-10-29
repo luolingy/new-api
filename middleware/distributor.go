@@ -44,7 +44,7 @@ func Distribute() func(c *gin.Context) {
 		//（/pg 等 UserAuth 路径 token_id 为 0，自动放行）。
 		tokenId := common.GetContextKeyInt(c, constant.ContextKeyTokenId)
 		if tokenId != 0 {
-			allowed, retryAfter := service.TokenRateLimitPass(c, tokenId, c.GetInt("token_rpm_limit"), c.GetInt("token_tpm_limit"))
+			allowed, retryAfter := service.TokenRateLimitPass(c, tokenId, c.GetInt("token_rpm_limit"), c.GetInt("token_tpm_limit"), estimateTokenRateLimitInput(c))
 			if !allowed {
 				c.Header("Retry-After", strconv.FormatInt(retryAfter, 10))
 				abortWithOpenAiMessage(c, http.StatusTooManyRequests, i18n.T(c, i18n.MsgTokenRateLimitReached, map[string]any{
@@ -375,6 +375,29 @@ func getJSONStringValue(result gjson.Result, field string) (string, error) {
 		return "", fmt.Errorf("field %s must be a string", field)
 	}
 	return result.String(), nil
+}
+
+// estimateTokenRateLimitInput returns the estimated prompt tokens of the current
+// request so the per-token TPM admission check can reject an oversized request
+// before it is forwarded. It returns 0 when the limit is off or the body cannot
+// be read, which keeps the cheaper "already over limit" check in charge.
+func estimateTokenRateLimitInput(c *gin.Context) int {
+	if c.GetInt("token_tpm_limit") <= 0 {
+		return 0
+	}
+	storage, err := common.GetRequestBody(c)
+	if err != nil {
+		return 0
+	}
+	bodyStorage, ok := storage.(common.BodyStorage)
+	if !ok {
+		return 0
+	}
+	body, err := bodyStorage.Bytes()
+	if err != nil {
+		return 0
+	}
+	return service.EstimateRequestInputTokens(body)
 }
 
 func getModelRequest(c *gin.Context) (*ModelRequest, bool, error) {

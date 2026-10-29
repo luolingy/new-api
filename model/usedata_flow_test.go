@@ -191,3 +191,60 @@ func TestLogQuotaDataSplitsRowsByUseGroupTokenChannelAndNode(t *testing.T) {
 	require.Equal(t, "default", rows[1].UseGroup)
 	require.Equal(t, 25, rows[1].Quota)
 }
+
+func TestLogOtherCacheWriteTokensNormalizesBothPublishShapes(t *testing.T) {
+	entries := func(pairs map[string]int) *LogOther {
+		other := NewLogOther()
+		for key, value := range pairs {
+			other.SetPublic(key, value)
+		}
+		return other
+	}
+	cases := []struct {
+		name  string
+		other *LogOther
+		want  int
+	}{
+		{
+			name:  "nil other reads zero",
+			other: nil,
+			want:  0,
+		},
+		{
+			name:  "missing cache fields reads zero",
+			other: NewLogOther(),
+			want:  0,
+		},
+		{
+			name:  "text relay publishes cache_write_tokens",
+			other: entries(map[string]int{"cache_write_tokens": 7000}),
+			want:  7000,
+		},
+		{
+			name:  "claude relay publishes cache_creation_tokens only",
+			other: entries(map[string]int{"cache_creation_tokens": 653}),
+			want:  653,
+		},
+		{
+			name: "claude split sums when it exceeds the total",
+			other: entries(map[string]int{
+				"cache_creation_tokens":    400,
+				"cache_creation_tokens_5m": 500,
+			}),
+			want: 500,
+		},
+		{
+			name: "claude keeps the larger total when it exceeds the split",
+			other: entries(map[string]int{
+				"cache_creation_tokens":    900,
+				"cache_creation_tokens_1h": 500,
+			}),
+			want: 900,
+		},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			require.Equal(t, tc.want, logOtherCacheWriteTokens(tc.other))
+		})
+	}
+}
