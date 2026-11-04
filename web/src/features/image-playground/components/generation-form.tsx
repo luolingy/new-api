@@ -16,11 +16,13 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Loader2, Sparkles } from 'lucide-react'
+import { Download, Loader2, Sparkles, Upload } from 'lucide-react'
+import { useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { ModelGroupSelector } from '@/components/model-group-selector'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import {
   NativeSelect,
@@ -28,7 +30,6 @@ import {
   NativeSelectOptGroup,
 } from '@/components/ui/native-select'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { TitledCard } from '@/components/ui/titled-card'
 import type { GroupOption, ModelOption } from '@/features/playground/types'
 
@@ -48,6 +49,7 @@ import {
   parseImageSize,
 } from '../lib/size'
 import type { ImagePlaygroundForm, ImagePlaygroundReference } from '../types'
+import { MentionTextarea } from './mention-textarea'
 import { ReferenceUploader } from './reference-uploader'
 
 const QUALITY_LABEL_KEYS: Record<string, string> = {
@@ -74,18 +76,19 @@ type GenerationFormProps = {
   maxReferences: number
   disabled: boolean
   isSubmitting: boolean
+  batchMode: boolean
+  onBatchModeChange: (value: boolean) => void
+  onExportConfig: () => void
+  onImportConfig: (file: File) => void
   onSubmit: () => void
 }
 
 export function GenerationForm(props: GenerationFormProps) {
   const { t } = useTranslation()
+  const importInputRef = useRef<HTMLInputElement | null>(null)
   const presetSizes = IMAGE_SIZE_TIERS.flatMap((tier) => tier.sizes)
   const customSize =
     parseImageSize(props.form.size) && !presetSizes.includes(props.form.size)
-  const imageCountOptions = Array.from(
-    { length: Math.max(1, props.maxImages) },
-    (_, index) => index + 1
-  )
   const canSubmit =
     !props.disabled &&
     !props.isSubmitting &&
@@ -100,6 +103,43 @@ export function GenerationForm(props: GenerationFormProps) {
       icon={<Sparkles className='size-4' />}
       title={t('Generate image')}
       description={t('Runs on the server. You can close this page.')}
+      action={
+        <div className='flex items-center gap-1'>
+          <Button
+            disabled={props.disabled}
+            onClick={props.onExportConfig}
+            size='xs'
+            title={t('Export all settings')}
+            type='button'
+            variant='ghost'
+          >
+            <Download className='size-3.5' />
+            <span className='hidden sm:inline'>{t('Export')}</span>
+          </Button>
+          <Button
+            disabled={props.disabled}
+            onClick={() => importInputRef.current?.click()}
+            size='xs'
+            title={t('Import settings')}
+            type='button'
+            variant='ghost'
+          >
+            <Upload className='size-3.5' />
+            <span className='hidden sm:inline'>{t('Import')}</span>
+          </Button>
+          <input
+            accept='application/json,.json'
+            className='hidden'
+            onChange={(event) => {
+              const file = event.target.files?.[0]
+              if (file) props.onImportConfig(file)
+              event.target.value = ''
+            }}
+            ref={importInputRef}
+            type='file'
+          />
+        </div>
+      }
     >
       <form
         className='space-y-4'
@@ -123,18 +163,42 @@ export function GenerationForm(props: GenerationFormProps) {
         </div>
 
         <div className='space-y-1.5'>
-          <Label htmlFor='image-playground-prompt'>{t('Prompt')}</Label>
-          <Textarea
+          <div className='flex items-center justify-between gap-2'>
+            <Label htmlFor='image-playground-prompt'>{t('Prompt')}</Label>
+            <label className='text-muted-foreground flex items-center gap-1.5 text-[11px]'>
+              {t('Batch mode')}
+              <Switch
+                checked={props.batchMode}
+                disabled={props.disabled}
+                onCheckedChange={props.onBatchModeChange}
+              />
+            </label>
+          </div>
+          <MentionTextarea
             disabled={props.disabled}
             id='image-playground-prompt'
             maxLength={IMAGE_PLAYGROUND_MAX_PROMPT_LENGTH}
-            onChange={(event) => props.onChange({ prompt: event.target.value })}
-            placeholder={t('Describe the image you want to create...')}
+            onChange={(value) => props.onChange({ prompt: value })}
+            placeholder={
+              props.batchMode
+                ? t(
+                    'One prompt per group separated by two blank lines. Type @ to mention a reference image.'
+                  )
+                : t('Describe the image you want to create... Type @ to mention a reference image.')
+            }
+            references={props.references}
             rows={4}
             value={props.form.prompt}
           />
-          <div className='text-muted-foreground flex justify-end text-[11px]'>
-            {props.form.prompt.length}/{IMAGE_PLAYGROUND_MAX_PROMPT_LENGTH}
+          <div className='text-muted-foreground flex justify-between text-[11px]'>
+            <span>
+              {props.references.length > 0
+                ? t('Type @ to insert a reference image')
+                : ''}
+            </span>
+            <span>
+              {props.form.prompt.length}/{IMAGE_PLAYGROUND_MAX_PROMPT_LENGTH}
+            </span>
           </div>
         </div>
 
@@ -197,21 +261,25 @@ export function GenerationForm(props: GenerationFormProps) {
 
           <div className='space-y-1.5'>
             <Label htmlFor='image-playground-count'>{t('Images')}</Label>
-            <NativeSelect
+            <Input
               className='w-full'
               disabled={props.disabled}
               id='image-playground-count'
-              onChange={(event) =>
-                props.onChange({ n: Number(event.target.value) })
-              }
+              inputMode='numeric'
+              max={Math.max(1, props.maxImages)}
+              min={1}
+              onChange={(event) => {
+                const raw = event.target.value.replaceAll(/\D/g, '')
+                const parsed = raw === '' ? 1 : Number(raw)
+                const clamped = Math.min(
+                  Math.max(1, parsed),
+                  Math.max(1, props.maxImages)
+                )
+                props.onChange({ n: clamped })
+              }}
+              type='number'
               value={String(props.form.n)}
-            >
-              {imageCountOptions.map((count) => (
-                <NativeSelectOption key={count} value={String(count)}>
-                  {count}
-                </NativeSelectOption>
-              ))}
-            </NativeSelect>
+            />
           </div>
 
           <div className='space-y-1.5'>

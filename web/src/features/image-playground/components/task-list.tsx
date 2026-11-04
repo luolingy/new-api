@@ -16,7 +16,17 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-import { Download, Images, ImageUp, Loader2, X } from 'lucide-react'
+import {
+  CheckSquare,
+  Download,
+  Images,
+  ImageUp,
+  Loader2,
+  RotateCcw,
+  Square,
+  Trash2,
+  X,
+} from 'lucide-react'
 import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 
@@ -34,11 +44,17 @@ type TaskListProps = {
   isLoading: boolean
   isDeleting: boolean
   selected: ReadonlySet<string>
+  selectedTasks: ReadonlySet<string>
   isExporting: boolean
   selectableImageCount: number
   onToggleSelect: (key: string) => void
+  onToggleSelectTask: (taskId: string) => void
   onSelectAll: () => void
   onClearSelection: () => void
+  onSelectAllTasks: () => void
+  onClearTaskSelection: () => void
+  onDeleteSelectedTasks: () => void
+  onReuseSelectedTasks: () => void
   onDownloadSelected: () => void
   onUseSelectedAsReference: () => void
   onReuse: (task: ImagePlaygroundTask) => void
@@ -51,6 +67,9 @@ export function TaskList(props: TaskListProps) {
     (task) => task.status === 'queued' || task.status === 'running'
   ).length
   const hasSelection = props.selected.size > 0
+  const hasTaskSelection = props.selectedTasks.size > 0
+  const allTasksSelected =
+    props.tasks.length > 0 && props.selectedTasks.size === props.tasks.length
 
   let content: ReactNode
   if (props.isLoading) {
@@ -70,10 +89,12 @@ export function TaskList(props: TaskListProps) {
         {props.tasks.map((task) => (
           <TaskCard
             isDeleting={props.isDeleting}
+            isTaskSelected={props.selectedTasks.has(task.id)}
             key={task.id}
             onDelete={props.onDelete}
             onReuse={props.onReuse}
             onToggleSelect={props.onToggleSelect}
+            onToggleSelectTask={props.onToggleSelectTask}
             selected={props.selected}
             task={task}
           />
@@ -101,6 +122,71 @@ export function TaskList(props: TaskListProps) {
       title={t('Task history')}
     >
       <div className='space-y-3'>
+        {props.tasks.length > 0 && (
+          <div className='border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2'>
+            <div className='flex items-center gap-2'>
+              {hasTaskSelection ? (
+                <Badge variant='secondary'>
+                  {t('{{count}} tasks selected', {
+                    count: props.selectedTasks.size,
+                  })}
+                </Badge>
+              ) : (
+                <span className='text-muted-foreground text-xs'>
+                  {t('Select whole tasks to act on them in bulk.')}
+                </span>
+              )}
+              <Button
+                onClick={
+                  allTasksSelected ? props.onClearTaskSelection : props.onSelectAllTasks
+                }
+                size='xs'
+                type='button'
+                variant='ghost'
+              >
+                {allTasksSelected ? (
+                  <>
+                    <Square className='size-3.5' />
+                    {t('Clear selection')}
+                  </>
+                ) : (
+                  <>
+                    <CheckSquare className='size-3.5' />
+                    {t('Select all tasks')}
+                  </>
+                )}
+              </Button>
+            </div>
+            {hasTaskSelection && (
+              <div className='flex items-center gap-1.5'>
+                <Button
+                  disabled={props.isDeleting}
+                  onClick={props.onReuseSelectedTasks}
+                  size='xs'
+                  type='button'
+                  variant='outline'
+                >
+                  <RotateCcw className='size-3.5' />
+                  {t('Reuse')}
+                </Button>
+                <Button
+                  disabled={props.isDeleting}
+                  onClick={props.onDeleteSelectedTasks}
+                  size='xs'
+                  type='button'
+                  variant='outline'
+                >
+                  {props.isDeleting ? (
+                    <Loader2 className='size-3.5 animate-spin' />
+                  ) : (
+                    <Trash2 className='size-3.5' />
+                  )}
+                  {t('Delete selected')}
+                </Button>
+              </div>
+            )}
+          </div>
+        )}
         {props.selectableImageCount > 0 && (
           <div className='border-border/70 bg-muted/30 flex flex-wrap items-center justify-between gap-2 rounded-lg border p-2'>
             <div className='flex items-center gap-2'>

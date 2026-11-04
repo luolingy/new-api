@@ -90,3 +90,10 @@ export type ImagePlaygroundReference = {
   file: File
   previewUrl: string
 }
+
+export type ImagePlaygroundConfigExport = {
+  type: 'new-api-image-playground-config'
+  version: number
+  exportedAt: number
+  form: ImagePlaygroundForm
+}

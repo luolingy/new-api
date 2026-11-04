@@ -7546,6 +7546,27 @@
     "You can attach at most {{count}} reference images": "Chỉ có thể đính kèm tối đa {{count}} ảnh tham chiếu",
     "Per-key rate limit 429 duration": "Thời gian chờ 429 cho giới hạn theo khóa (giây)",
     "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "Thời gian mà phản hồi 429 khi giới hạn RPM/TPM theo khóa yêu cầu bên gọi chờ. 0 sẽ trả về thời gian còn lại của cửa sổ giới hạn.",
-    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "Chỉ tính các mô hình tính phí ghi bộ nhớ đệm tường minh (ví dụ Claude, OpenAI prompt caching); các mô hình bộ nhớ đệm tự động như DeepSeek luôn hiển thị 0."
+    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "Chỉ tính các mô hình tính phí ghi bộ nhớ đệm tường minh (ví dụ Claude, OpenAI prompt caching); các mô hình bộ nhớ đệm tự động như DeepSeek luôn hiển thị 0.",
+    "{{count}} tasks deleted": "Đã xóa {{count}} tác vụ",
+    "{{count}} tasks selected": "Đã chọn {{count}} tác vụ",
+    "{{count}} tasks submitted": "Đã gửi {{count}} tác vụ",
+    "Batch mode": "Chế độ hàng loạt",
+    "Delete selected": "Xóa mục đã chọn",
+    "Describe the image you want to create... Type @ to mention a reference image.": "Mô tả hình ảnh bạn muốn tạo… Gõ @ để chèn ảnh tham chiếu.",
+    "Export all settings": "Xuất toàn bộ cài đặt",
+    "Failed to delete the selected tasks": "Xóa các tác vụ đã chọn thất bại",
+    "Failed to export settings": "Xuất cài đặt thất bại",
+    "Failed to submit the task": "Gửi tác vụ thất bại",
+    "Import": "Nhập",
+    "Import settings": "Nhập cài đặt",
+    "Invalid configuration file": "Tệp cấu hình không hợp lệ",
+    "Select all tasks": "Chọn tất cả tác vụ",
+    "Select task": "Chọn tác vụ",
+    "Select whole tasks to act on them in bulk.": "Chọn toàn bộ tác vụ để thao tác hàng loạt.",
+    "Settings exported": "Đã xuất cài đặt",
+    "Settings imported": "Đã nhập cài đặt",
+    "Submitted {{done}} of {{total}} tasks": "Đã gửi {{done}}/{{total}} tác vụ",
+    "Type @ to insert a reference image": "Gõ @ để chèn ảnh tham chiếu",
+    "One prompt per group separated by two blank lines. Type @ to mention a reference image.": "Mỗi nhóm một prompt, phân tách bằng hai dòng trống. Gõ @ để chèn ảnh tham chiếu."
   }
 }

@@ -23,15 +23,15 @@ const (
 	minMaxReferenceImages = 0
 	maxMaxReferenceImages = 16
 	minMaxImagesPerTask   = 1
-	maxMaxImagesPerTask   = 8
+	maxMaxImagesPerTask   = 10
 	maxRetentionDays      = 90
 	maxAllowedModels      = 100
 )
 
 var defaultImagePlaygroundSetting = ImagePlaygroundSetting{
 	Enabled:            true,
-	MaxReferenceImages: 4,
-	MaxImagesPerTask:   4,
+	MaxReferenceImages: 16,
+	MaxImagesPerTask:   10,
 	RetentionDays:      7,
 }
 

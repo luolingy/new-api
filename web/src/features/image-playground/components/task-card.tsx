@@ -48,8 +48,10 @@ import type { ImagePlaygroundStatus, ImagePlaygroundTask } from '../types'
 type TaskCardProps = {
   task: ImagePlaygroundTask
   isDeleting: boolean
+  isTaskSelected: boolean
   selected: ReadonlySet<string>
   onToggleSelect: (key: string) => void
+  onToggleSelectTask: (taskId: string) => void
   onReuse: (task: ImagePlaygroundTask) => void
   onDelete: (task: ImagePlaygroundTask) => void
 }
@@ -89,8 +91,22 @@ export function TaskCard(props: TaskCardProps) {
   }
 
   return (
-    <div className='border-border/70 bg-card/60 space-y-2.5 rounded-xl border p-3'>
+    <div
+      className={`border-border/70 bg-card/60 space-y-2.5 rounded-xl border p-3 ${
+        props.isTaskSelected ? 'ring-primary/40 ring-2' : ''
+      }`}
+    >
       <div className='flex items-start justify-between gap-2'>
+        <button
+          aria-checked={props.isTaskSelected}
+          aria-label={t('Select task')}
+          className='border-border bg-background/85 hover:bg-background mt-0.5 inline-flex size-5 shrink-0 items-center justify-center rounded border'
+          onClick={() => props.onToggleSelectTask(props.task.id)}
+          role='checkbox'
+          type='button'
+        >
+          {props.isTaskSelected && <Check className='text-primary size-3.5' />}
+        </button>
         <div className='min-w-0 flex-1 space-y-1'>
           <p className='line-clamp-3 text-sm break-words'>
             {props.task.prompt}

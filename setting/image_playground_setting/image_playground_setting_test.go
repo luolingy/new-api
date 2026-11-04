@@ -67,6 +67,15 @@ func TestLimitsClampToSupportedRange(t *testing.T) {
 	}
 }
 
+func TestDefaultLimitsMatchReferencePlayground(t *testing.T) {
+	setting := GetImagePlaygroundSetting()
+
+	// The workspace mirrors the reference playground: 16 reference images and a
+	// per-task output ceiling of 10, which the UI exposes as a free-form count.
+	assert.Equal(t, 16, setting.ReferenceImageLimit())
+	assert.Equal(t, 10, setting.ImageCountLimit())
+}
+
 func TestValidateModelsAcceptsEmptyAndValidLists(t *testing.T) {
 	require.NoError(t, ValidateModels(""))
 	require.NoError(t, ValidateModels("gpt-image-1, dall-e-3"))
@@ -96,9 +105,9 @@ func TestValidateModelLimitValues(t *testing.T) {
 	assert.Error(t, ValidateMaxReferenceImages("abc"))
 
 	assert.NoError(t, ValidateMaxImagesPerTask("1"))
-	assert.NoError(t, ValidateMaxImagesPerTask("8"))
+	assert.NoError(t, ValidateMaxImagesPerTask("10"))
 	assert.Error(t, ValidateMaxImagesPerTask("0"))
-	assert.Error(t, ValidateMaxImagesPerTask("9"))
+	assert.Error(t, ValidateMaxImagesPerTask("11"))
 
 	assert.NoError(t, ValidateRetentionDays("0"))
 	assert.NoError(t, ValidateRetentionDays("90"))

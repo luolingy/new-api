@@ -7546,6 +7546,27 @@
     "You can attach at most {{count}} reference images": "You can attach at most {{count}} reference images",
     "Per-key rate limit 429 duration": "Per-key rate limit 429 duration",
     "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.",
-    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0."
+    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.",
+    "{{count}} tasks deleted": "{{count}} tasks deleted",
+    "{{count}} tasks selected": "{{count}} tasks selected",
+    "{{count}} tasks submitted": "{{count}} tasks submitted",
+    "Batch mode": "Batch mode",
+    "Delete selected": "Delete selected",
+    "Describe the image you want to create... Type @ to mention a reference image.": "Describe the image you want to create... Type @ to mention a reference image.",
+    "Export all settings": "Export all settings",
+    "Failed to delete the selected tasks": "Failed to delete the selected tasks",
+    "Failed to export settings": "Failed to export settings",
+    "Failed to submit the task": "Failed to submit the task",
+    "Import": "Import",
+    "Import settings": "Import settings",
+    "Invalid configuration file": "Invalid configuration file",
+    "Select all tasks": "Select all tasks",
+    "Select task": "Select task",
+    "Select whole tasks to act on them in bulk.": "Select whole tasks to act on them in bulk.",
+    "Settings exported": "Settings exported",
+    "Settings imported": "Settings imported",
+    "Submitted {{done}} of {{total}} tasks": "Submitted {{done}} of {{total}} tasks",
+    "Type @ to insert a reference image": "Type @ to insert a reference image",
+    "One prompt per group separated by two blank lines. Type @ to mention a reference image.": "One prompt per group separated by two blank lines. Type @ to mention a reference image."
   }
 }

@@ -90,12 +90,16 @@ export function normalizeImagePlaygroundForm(
 
 export function buildImagePlaygroundFormData(
   form: ImagePlaygroundForm,
-  referenceFiles: File[]
+  referenceFiles: File[],
+  overrides: { prompt?: string; n?: number } = {}
 ): FormData {
   const data = new FormData()
   data.append('model', form.model)
   data.append('group', form.group)
-  data.append('prompt', form.prompt)
+  data.append(
+    'prompt',
+    overrides.prompt !== undefined ? overrides.prompt : form.prompt
+  )
   data.append('size', form.size)
   data.append('quality', form.quality)
   data.append('background', form.background)
@@ -106,7 +110,7 @@ export function buildImagePlaygroundFormData(
   if (form.stream) {
     data.append('partial_images', String(form.partialImages))
   }
-  data.append('n', String(form.n))
+  data.append('n', String(overrides.n !== undefined ? overrides.n : form.n))
   for (const file of referenceFiles) {
     data.append('references', file)
   }

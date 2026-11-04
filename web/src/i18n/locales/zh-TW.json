@@ -7546,6 +7546,27 @@
     "You can attach at most {{count}} reference images": "最多只能加入 {{count}} 張參考圖",
     "Per-key rate limit 429 duration": "金鑰限速 429 等待時長（秒）",
     "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "當金鑰觸發 RPM/TPM 限速時，429 回應告知呼叫方等待的時長。0 表示回傳目前限速視窗的剩餘時間。",
-    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "僅統計顯式寫入快取的模型（如 Claude、OpenAI prompt caching）；DeepSeek 等自動快取模型的快取寫入恆為 0。"
+    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "僅統計顯式寫入快取的模型（如 Claude、OpenAI prompt caching）；DeepSeek 等自動快取模型的快取寫入恆為 0。",
+    "{{count}} tasks deleted": "已刪除 {{count}} 個任務",
+    "{{count}} tasks selected": "已選擇 {{count}} 個任務",
+    "{{count}} tasks submitted": "已提交 {{count}} 個任務",
+    "Batch mode": "批次模式",
+    "Delete selected": "刪除所選",
+    "Describe the image you want to create... Type @ to mention a reference image.": "描述你想生成的圖片……輸入 @ 可引用參考圖。",
+    "Export all settings": "匯出全部設定",
+    "Failed to delete the selected tasks": "刪除所選任務失敗",
+    "Failed to export settings": "匯出設定失敗",
+    "Failed to submit the task": "提交任務失敗",
+    "Import": "匯入",
+    "Import settings": "匯入設定",
+    "Invalid configuration file": "設定檔無效",
+    "Select all tasks": "全選任務",
+    "Select task": "選擇任務",
+    "Select whole tasks to act on them in bulk.": "勾選整個任務可批次操作。",
+    "Settings exported": "設定已匯出",
+    "Settings imported": "設定已匯入",
+    "Submitted {{done}} of {{total}} tasks": "已提交 {{done}}/{{total}} 個任務",
+    "Type @ to insert a reference image": "輸入 @ 可插入參考圖",
+    "One prompt per group separated by two blank lines. Type @ to mention a reference image.": "每段一個提示詞，用兩個空行分隔。輸入 @ 可引用參考圖。"
   }
 }

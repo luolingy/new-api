@@ -40,11 +40,18 @@ import {
   DEFAULT_IMAGE_PLAYGROUND_FORM,
 } from '../constants'
 import { useImagePlaygroundOptions } from '../hooks/use-image-playground-options'
+import { runWithConcurrency, splitBatchPrompts } from '../lib/batch-prompts'
+import {
+  buildConfigExport,
+  configExportFileName,
+  parseConfigImport,
+} from '../lib/config-transfer'
 import {
   buildImagePlaygroundFormData,
   readStoredImagePlaygroundForm,
   storeImagePlaygroundForm,
 } from '../lib/form'
+import { replaceImageMentionsForApi } from '../lib/prompt-mentions'
 import {
   imagePlaygroundImageKey,
   parseImagePlaygroundImageKey,
@@ -58,6 +65,7 @@ import { GenerationForm } from './generation-form'
 import { TaskList } from './task-list'
 
 const TASKS_QUERY_KEY = ['image-playground-tasks'] as const
+const BATCH_CONCURRENCY = 4
 
 export function ImagePlayground() {
   const { t } = useTranslation()
@@ -67,6 +75,8 @@ export function ImagePlayground() {
   )
   const [references, setReferences] = useState<ImagePlaygroundReference[]>([])
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [selectedTasks, setSelectedTasks] = useState<Set<string>>(new Set())
+  const [batchMode, setBatchMode] = useState(false)
   const [isExporting, setIsExporting] = useState(false)
   const referencesRef = useRef(references)
   referencesRef.current = references
@@ -97,9 +107,6 @@ export function ImagePlayground() {
   const submitMutation = useMutation({
     mutationFn: createImagePlaygroundTask,
     onSuccess: () => {
-      toast.success(
-        t('Task submitted. It keeps generating even if you close the page.')
-      )
       void queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY })
     },
   })
@@ -107,13 +114,18 @@ export function ImagePlayground() {
   const deleteMutation = useMutation({
     mutationFn: (taskId: string) => deleteImagePlaygroundTask(taskId),
     onSuccess: (_data, taskId) => {
-      toast.success(t('Image task deleted'))
       const prefix = `${taskId}:`
       setSelected((current) => {
         const next = new Set(
           [...current].filter((key) => !key.startsWith(prefix))
         )
         return next.size === current.size ? current : next
+      })
+      setSelectedTasks((current) => {
+        if (!current.has(taskId)) return current
+        const next = new Set(current)
+        next.delete(taskId)
+        return next
       })
       void queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY })
     },
@@ -162,7 +174,7 @@ export function ImagePlayground() {
     })
   }
 
-  function handleSubmit() {
+  async function handleSubmit() {
     if (!form.model) {
       toast.error(t('Please select a model'))
       return
@@ -171,12 +183,57 @@ export function ImagePlayground() {
       toast.error(t('Please enter a prompt'))
       return
     }
-    submitMutation.mutate(
-      buildImagePlaygroundFormData(
-        form,
-        references.map((reference) => reference.file)
+    const files = references.map((reference) => reference.file)
+    const referenceCount = files.length
+    const prompts = batchMode
+      ? splitBatchPrompts(form.prompt).map((item) =>
+          replaceImageMentionsForApi(item, referenceCount)
+        )
+      : [replaceImageMentionsForApi(form.prompt, referenceCount)]
+
+    if (prompts.length === 0) {
+      toast.error(t('Please enter a prompt'))
+      return
+    }
+
+    if (prompts.length === 1) {
+      try {
+        await submitMutation.mutateAsync(
+          buildImagePlaygroundFormData(form, files, { prompt: prompts[0] })
+        )
+        toast.success(
+          t('Task submitted. It keeps generating even if you close the page.')
+        )
+      } catch {
+        toast.error(t('Failed to submit the task'))
+      }
+      return
+    }
+
+    // Batch: submit each prompt as its own task with bounded concurrency.
+    let submitted = 0
+    try {
+      await runWithConcurrency(
+        prompts,
+        BATCH_CONCURRENCY,
+        async (prompt) => {
+          await submitMutation.mutateAsync(
+            buildImagePlaygroundFormData(form, files, { prompt })
+          )
+          submitted += 1
+        }
       )
-    )
+      toast.success(
+        t('{{count}} tasks submitted', { count: submitted })
+      )
+    } catch {
+      toast.error(
+        t('Submitted {{done}} of {{total}} tasks', {
+          done: submitted,
+          total: prompts.length,
+        })
+      )
+    }
   }
 
   function handleReuse(task: ImagePlaygroundTask) {
@@ -204,7 +261,83 @@ export function ImagePlayground() {
   }
 
   function handleDelete(task: ImagePlaygroundTask) {
-    deleteMutation.mutate(task.id)
+    deleteMutation.mutate(task.id, {
+      onSuccess: () => toast.success(t('Image task deleted')),
+    })
+  }
+
+  function toggleSelectedTask(taskId: string) {
+    setSelectedTasks((current) => {
+      const next = new Set(current)
+      if (next.has(taskId)) {
+        next.delete(taskId)
+      } else {
+        next.add(taskId)
+      }
+      return next
+    })
+  }
+
+  function selectAllTasks() {
+    setSelectedTasks(new Set(tasks.map((task) => task.id)))
+  }
+
+  function clearTaskSelection() {
+    setSelectedTasks(new Set())
+  }
+
+  async function deleteSelectedTasks() {
+    const ids = [...selectedTasks]
+    if (ids.length === 0) return
+    try {
+      await Promise.all(
+        ids.map((id) => deleteImagePlaygroundTask(id))
+      )
+      toast.success(t('{{count}} tasks deleted', { count: ids.length }))
+      setSelectedTasks(new Set())
+      void queryClient.invalidateQueries({ queryKey: TASKS_QUERY_KEY })
+    } catch {
+      toast.error(t('Failed to delete the selected tasks'))
+    }
+  }
+
+  async function reuseSelectedTasks() {
+    const ids = [...selectedTasks]
+    if (ids.length === 0) return
+    // Reuse the newest selected task's settings.
+    const candidate = tasks
+      .filter((task) => selectedTasks.has(task.id))
+      .sort((a, b) => b.created_at - a.created_at)[0]
+    if (candidate) handleReuse(candidate)
+  }
+
+  function handleExportConfig() {
+    try {
+      const payload = JSON.stringify(buildConfigExport(form), null, 2)
+      const blob = new Blob([payload], { type: 'application/json' })
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = configExportFileName()
+      document.body.append(link)
+      link.click()
+      link.remove()
+      URL.revokeObjectURL(url)
+      toast.success(t('Settings exported'))
+    } catch {
+      toast.error(t('Failed to export settings'))
+    }
+  }
+
+  async function handleImportConfig(file: File) {
+    try {
+      const text = await file.text()
+      const imported = parseConfigImport(text)
+      setForm((current) => ({ ...current, ...imported }))
+      toast.success(t('Settings imported'))
+    } catch {
+      toast.error(t('Invalid configuration file'))
+    }
   }
 
   function toggleSelected(key: string) {
@@ -353,16 +486,20 @@ export function ImagePlayground() {
               )}
             <div className='grid min-h-0 flex-1 gap-3 overflow-y-auto lg:grid-cols-[minmax(0,24rem)_minmax(0,1fr)] lg:overflow-hidden'>
               <GenerationForm
+                batchMode={batchMode}
                 disabled={unavailable}
                 form={form}
                 groups={options.groups}
                 isSubmitting={submitMutation.isPending}
-                maxImages={config?.max_images_per_task ?? 4}
-                maxReferences={config?.max_reference_images ?? 4}
+                maxImages={config?.max_images_per_task ?? 10}
+                maxReferences={config?.max_reference_images ?? 16}
                 models={options.models}
+                onBatchModeChange={setBatchMode}
                 onChange={updateForm}
+                onExportConfig={handleExportConfig}
+                onImportConfig={(file) => void handleImportConfig(file)}
                 onReferencesChange={setReferences}
-                onSubmit={handleSubmit}
+                onSubmit={() => void handleSubmit()}
                 references={references}
               />
               <TaskList
@@ -370,14 +507,20 @@ export function ImagePlayground() {
                 isExporting={isExporting}
                 isLoading={tasksQuery.isLoading}
                 onClearSelection={() => setSelected(new Set())}
+                onClearTaskSelection={clearTaskSelection}
                 onDelete={handleDelete}
+                onDeleteSelectedTasks={() => void deleteSelectedTasks()}
                 onDownloadSelected={() => void downloadSelected()}
                 onReuse={handleReuse}
+                onReuseSelectedTasks={() => void reuseSelectedTasks()}
                 onSelectAll={selectAllImages}
+                onSelectAllTasks={selectAllTasks}
                 onToggleSelect={toggleSelected}
+                onToggleSelectTask={toggleSelectedTask}
                 onUseSelectedAsReference={() => void addSelectedAsReference()}
                 selectableImageCount={selectableImageCount}
                 selected={selected}
+                selectedTasks={selectedTasks}
                 tasks={tasks}
               />
             </div>

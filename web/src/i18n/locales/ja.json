@@ -7546,6 +7546,27 @@
     "You can attach at most {{count}} reference images": "参照画像は最大 {{count}} 枚まで添付できます",
     "Per-key rate limit 429 duration": "キーごとのレート制限 429 待機時間（秒）",
     "How long a 429 for a per-key RPM/TPM limit tells the caller to wait. 0 reports the remaining limit window.": "キーごとの RPM/TPM 制限で 429 が返された際に、呼び出し元へ待機を促す時間。0 は制限ウィンドウの残り時間を返します。",
-    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "キャッシュ書き込みを明示的に課金するモデルのみを集計します（例: Claude、OpenAI prompt caching）。DeepSeek などの自動キャッシュモデルでは常に 0 です。"
+    "Only counts models that bill explicit cache writes (e.g. Claude, OpenAI prompt caching); automatic-cache models such as DeepSeek always show 0.": "キャッシュ書き込みを明示的に課金するモデルのみを集計します（例: Claude、OpenAI prompt caching）。DeepSeek などの自動キャッシュモデルでは常に 0 です。",
+    "{{count}} tasks deleted": "{{count}} 件のタスクを削除しました",
+    "{{count}} tasks selected": "{{count}} 件のタスクを選択中",
+    "{{count}} tasks submitted": "{{count}} 件のタスクを送信しました",
+    "Batch mode": "バッチモード",
+    "Delete selected": "選択を削除",
+    "Describe the image you want to create... Type @ to mention a reference image.": "生成したい画像を説明してください… @ で参照画像を指定できます。",
+    "Export all settings": "すべての設定をエクスポート",
+    "Failed to delete the selected tasks": "選択したタスクの削除に失敗しました",
+    "Failed to export settings": "設定のエクスポートに失敗しました",
+    "Failed to submit the task": "タスクの送信に失敗しました",
+    "Import": "インポート",
+    "Import settings": "設定をインポート",
+    "Invalid configuration file": "設定ファイルが無効です",
+    "Select all tasks": "すべてのタスクを選択",
+    "Select task": "タスクを選択",
+    "Select whole tasks to act on them in bulk.": "タスク全体を選択すると一括操作できます。",
+    "Settings exported": "設定をエクスポートしました",
+    "Settings imported": "設定をインポートしました",
+    "Submitted {{done}} of {{total}} tasks": "{{total}} 件中 {{done}} 件を送信しました",
+    "Type @ to insert a reference image": "@ で参照画像を挿入",
+    "One prompt per group separated by two blank lines. Type @ to mention a reference image.": "2 つの空行で区切ると各グループが 1 つのプロンプトになります。@ で参照画像を指定できます。"
   }
 }
