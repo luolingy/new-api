@@ -1,0 +1,97 @@
+name: Docker Hub tags (list & prune)
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: "'list' prints tags; 'prune' deletes everything except kept tags"
+        required: true
+        default: list
+        type: choice
+        options:
+          - list
+          - prune
+      keep:
+        description: 'Comma-separated tags to KEEP (prune mode). Empty keeps nothing extra.'
+        required: false
+        default: 'latest,main'
+        type: string
+      dry_run:
+        description: 'prune only: print what would be deleted without deleting'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+
+jobs:
+  manage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: List / prune luolingy/new-api tags
+        env:
+          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+          MODE: ${{ inputs.mode }}
+          KEEP: ${{ inputs.keep }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          REPO="luolingy/new-api"
+          AUTH=$(printf '%s:%s' "$DH_USER" "$DH_TOKEN" | base64 -w0)
+
+          # Fetch all tags (paginate).
+          page=1
+          : > all_tags.txt
+          while :; do
+            body=$(curl -fsSL -H "Authorization: Basic $AUTH" \
+              "https://hub.docker.com/v2/repositories/${REPO}/tags?page_size=100&page=${page}&ordering=last_updated")
+            names=$(echo "$body" | jq -r '.results[].name')
+            [ -z "$names" ] && break
+            echo "$names" >> all_tags.txt
+            count=$(echo "$body" | jq -r '.count')
+            next=$(echo "$body" | jq -r '.next // empty')
+            [ -z "$next" ] && break
+            page=$((page+1))
+          done
+
+          echo "=== All tags ($(wc -l < all_tags.txt)) ==="
+          sort all_tags.txt
+          {
+            echo "### All tags ($(wc -l < all_tags.txt))"
+            echo '```'
+            sort all_tags.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$MODE" != "prune" ]; then
+            echo "List mode: no deletion."
+            exit 0
+          fi
+
+          IFS=',' read -ra KEEP_ARR <<< "$KEEP"
+          keep_set=" "
+          for k in "${KEEP_ARR[@]}"; do
+            k=$(echo "$k" | xargs)
+            [ -n "$k" ] && keep_set="${keep_set}${k} "
+          done
+
+          echo "=== Prune (keep:${keep_set}) dry_run=$DRY_RUN ==="
+          deleted=0
+          while read -r tag; do
+            [ -z "$tag" ] && continue
+            case "$keep_set" in
+              *" $tag "*) echo "KEEP   $tag"; continue ;;
+            esac
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "WOULD DELETE $tag"
+            else
+              code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE \
+                -H "Authorization: Basic $AUTH" \
+                "https://hub.docker.com/v2/repositories/${REPO}/tags/${tag}/")
+              echo "DELETE $tag -> $code"
+              deleted=$((deleted+1))
+            fi
+          done < <(sort all_tags.txt)
+          echo "Done. deleted=$deleted"
