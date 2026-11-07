@@ -55,6 +55,11 @@ type Channel struct {
 
 	OtherSettings string `json:"settings" gorm:"column:settings"` // 其他设置，存储azure版本等不需要检索的信息，详见dto.ChannelOtherSettings
 
+	// RpmLimit 为渠道每分钟最大请求数，0 表示不限制
+	RpmLimit int `json:"rpm_limit" gorm:"default:0"`
+	// TpmLimit 为渠道每分钟最大 token 消耗（prompt+completion），0 表示不限制
+	TpmLimit int `json:"tpm_limit" gorm:"default:0"`
+
 	// cache info
 	Keys []string `json:"-" gorm:"-"`
 }

@@ -17,6 +17,8 @@ rate_limit.reached: "您已達到請求數限制：{{.Minutes}}分鐘內最多�
 rate_limit.total_reached: "您已達到總請求數限制：{{.Minutes}}分鐘內最多請求{{.Max}}次，包括失敗次數，請檢查您的請求是否正確"
 rate_limit.token_reached: "權杖速率限制：每分鐘最多 {{.Requests}} 次請求、{{.Tokens}} 個 token，請於 {{.RetryAfter}} 秒後重試"
 rate_limit.token_negative: "速率限制不能為負數"
+rate_limit.channel_reached: "渠道速率限制：每分鐘最多 {{.Requests}} 次請求、{{.Tokens}} 個 token，請於 {{.RetryAfter}} 秒後重試"
+rate_limit.channel_negative: "渠道速率限制不能為負數"
 distributor.invalid_request: "無效的請求，{{.Error}}"
 distributor.invalid_channel_id: "無效的管道 Id"
 distributor.channel_disabled: "該管道已被禁用"

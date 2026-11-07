@@ -128,6 +128,8 @@ var channelNonSensitiveFields = map[string]struct{}{
 	"status_code_mapping": {},
 	"priority":            {},
 	"auto_ban":            {},
+	"rpm_limit":           {},
+	"tpm_limit":           {},
 	"other_info":          {},
 	"tag":                 {},
 	"remark":              {},

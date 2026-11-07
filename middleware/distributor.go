@@ -148,6 +148,23 @@ func Distribute() func(c *gin.Context) {
 		}
 		common.SetContextKey(c, constant.ContextKeyRequestStartTime, time.Now())
 		SetupContextForSelectedChannel(c, channel, modelRequest.Model)
+		// 每渠道 RPM/TPM 限制：必须在渠道选中之后才能检查。limits 存入
+		// 上下文，结算时据此把实际 token 计入该渠道的窗口。
+		if channel != nil {
+			c.Set("channel_rpm_limit", channel.RpmLimit)
+			c.Set("channel_tpm_limit", channel.TpmLimit)
+			allowed, retryAfter := service.ChannelRateLimitPass(c, channel.Id, channel.RpmLimit, channel.TpmLimit, estimateChannelRateLimitInput(c, channel.TpmLimit))
+			if !allowed {
+				c.Header("Retry-After", strconv.FormatInt(retryAfter, 10))
+				abortWithOpenAiMessage(c, http.StatusTooManyRequests, i18n.T(c, i18n.MsgChannelRateLimitReached, map[string]any{
+					"Channel":    channel.Name,
+					"Requests":   channel.RpmLimit,
+					"Tokens":     channel.TpmLimit,
+					"RetryAfter": retryAfter,
+				}))
+				return
+			}
+		}
 		c.Next()
 		if channel != nil && c.Writer != nil && c.Writer.Status() < http.StatusBadRequest {
 			service.RecordChannelAffinity(c, channel.Id)
@@ -409,6 +426,30 @@ func getJSONStringValue(result gjson.Result, field string) (string, error) {
 // be read, which keeps the cheaper "already over limit" check in charge.
 func estimateTokenRateLimitInput(c *gin.Context) int {
 	if c.GetInt("token_tpm_limit") <= 0 {
+		return 0
+	}
+	storage, err := common.GetRequestBody(c)
+	if err != nil {
+		return 0
+	}
+	bodyStorage, ok := storage.(common.BodyStorage)
+	if !ok {
+		return 0
+	}
+	body, err := bodyStorage.Bytes()
+	if err != nil {
+		return 0
+	}
+	return service.EstimateRequestInputTokens(body)
+}
+
+// estimateChannelRateLimitInput returns the estimated prompt tokens of the
+// current request so the per-channel TPM admission check can reject an oversized
+// request before it is forwarded. It returns 0 when the channel TPM limit is off
+// or the body cannot be read, which keeps the cheaper "already over limit" check
+// in charge.
+func estimateChannelRateLimitInput(c *gin.Context, tpmLimit int) int {
+	if tpmLimit <= 0 {
 		return 0
 	}
 	storage, err := common.GetRequestBody(c)

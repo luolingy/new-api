@@ -405,6 +405,8 @@ func PostAudioConsumeQuota(ctx *gin.Context, relayInfo *relaycommon.RelayInfo, u
 	relayInfo.PerformanceOutputTokens = int64(usage.CompletionTokens)
 	// 每令牌 TPM 限制：把本次实际消耗的 token 计入该令牌的当前窗口
 	RecordTokenUsage(ctx, relayInfo.TokenId, usage.PromptTokens, usage.CompletionTokens)
+	// 每渠道 TPM 限制：把本次实际消耗的 token 计入该渠道的当前窗口
+	RecordChannelUsage(ctx, relayInfo.ChannelId, usage.PromptTokens, usage.CompletionTokens)
 }
 
 func PreConsumeTokenQuota(relayInfo *relaycommon.RelayInfo, quota int) error {

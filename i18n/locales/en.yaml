@@ -16,6 +16,8 @@ rate_limit.reached: "You have reached the request limit: maximum {{.Max}} reques
 rate_limit.total_reached: "You have reached the total request limit: maximum {{.Max}} requests in {{.Minutes}} minutes, including failed attempts. Please check that your requests are correct"
 rate_limit.token_reached: "Token rate limit exceeded: maximum {{.Requests}} requests and {{.Tokens}} tokens per minute. Retry after {{.RetryAfter}}s"
 rate_limit.token_negative: "Rate limits must not be negative"
+rate_limit.channel_reached: "Channel rate limit exceeded: maximum {{.Requests}} requests and {{.Tokens}} tokens per minute. Retry after {{.RetryAfter}}s"
+rate_limit.channel_negative: "Channel rate limits must not be negative"
 distributor.invalid_request: "Invalid request: {{.Error}}"
 distributor.invalid_channel_id: "Invalid channel ID"
 distributor.channel_disabled: "This channel has been disabled"

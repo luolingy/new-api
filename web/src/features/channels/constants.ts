@@ -487,6 +487,9 @@ export const FIELD_DESCRIPTIONS = {
   WEIGHT: 'Used for load balancing. Higher weight = more requests',
   TEST_MODEL: 'Model to use when testing channel connectivity',
   AUTO_BAN: 'Automatically disable channel on repeated failures',
+  RPM_LIMIT: 'Maximum requests per minute for this channel. 0 = unlimited',
+  TPM_LIMIT:
+    'Maximum tokens (prompt + completion) per minute for this channel. 0 = unlimited',
   STATUS_CODE_MAPPING: 'Map response status codes (JSON format)',
   TAG: 'Group channels by tag for batch operations',
   REMARK: 'Internal notes (not shown to users)',

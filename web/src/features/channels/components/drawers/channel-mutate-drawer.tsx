@@ -2247,6 +2247,52 @@ export function ChannelMutateDrawer({
         />
       </div>
 
+      <div className='grid gap-4 sm:grid-cols-2'>
+        <FormField
+          control={form.control}
+          name='rpm_limit'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Requests Per Minute (RPM)')}</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  min={0}
+                  placeholder='0'
+                  {...field}
+                  value={field.value ?? 0}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription>{t(FIELD_DESCRIPTIONS.RPM_LIMIT)}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+
+        <FormField
+          control={form.control}
+          name='tpm_limit'
+          render={({ field }) => (
+            <FormItem>
+              <FormLabel>{t('Tokens Per Minute (TPM)')}</FormLabel>
+              <FormControl>
+                <Input
+                  type='number'
+                  min={0}
+                  placeholder='0'
+                  {...field}
+                  value={field.value ?? 0}
+                  onChange={(e) => field.onChange(Number(e.target.value))}
+                />
+              </FormControl>
+              <FormDescription>{t(FIELD_DESCRIPTIONS.TPM_LIMIT)}</FormDescription>
+              <FormMessage />
+            </FormItem>
+          )}
+        />
+      </div>
+
       <FormField
         control={form.control}
         name='test_model'

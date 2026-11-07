@@ -531,6 +531,10 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 		return fmt.Errorf("channel cannot be empty")
 	}
 
+	if channel.RpmLimit < 0 || channel.TpmLimit < 0 {
+		return common.NewMessage("Channel rate limits must not be negative", nil)
+	}
+
 	// 校验 channel settings
 	if err := channel.ValidateSettings(); err != nil {
 		return common.NewMessage("Invalid channel settings format: {{error}}", map[string]any{"error": err.Error()})
@@ -656,6 +660,26 @@ func validateChannel(channel *model.Channel, isAdd bool) error {
 	}
 
 	return nil
+}
+
+// forceUpdateChannelRateLimits 在 UpdateChannel 中按请求体显式写入渠道限速列，
+// 以覆盖 Updates(struct) 跳过零值、无法清空限速的问题。仅当请求体包含对应字段
+// 时才写入，其他不相关的编辑路径不会触碰这两列。
+func forceUpdateChannelRateLimits(channel *PatchChannel, requestData map[string]any) error {
+	columns := make([]string, 0, 2)
+	updates := model.Channel{Id: channel.Id}
+	if _, ok := requestData["rpm_limit"]; ok {
+		columns = append(columns, "rpm_limit")
+		updates.RpmLimit = channel.RpmLimit
+	}
+	if _, ok := requestData["tpm_limit"]; ok {
+		columns = append(columns, "tpm_limit")
+		updates.TpmLimit = channel.TpmLimit
+	}
+	if len(columns) == 0 {
+		return nil
+	}
+	return model.DB.Model(&model.Channel{}).Where("id = ?", channel.Id).Select(columns).Updates(updates).Error
 }
 
 func RefreshCodexChannelCredential(c *gin.Context) {
@@ -1226,6 +1250,12 @@ func UpdateChannel(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	// channel.Update() 使用 Updates(struct) 会跳过零值，无法把限速从正数清回 0。
+	// 当请求显式携带 rpm_limit/tpm_limit 时，单独按列写入，确保可以关闭限速。
+	if err := forceUpdateChannelRateLimits(&channel, requestData); err != nil {
+		common.ApiError(c, err)
+		return
+	}
 	model.InitChannelCache()
 	if proxyChanged {
 		service.InvalidateProxyClient(originProxy)
@@ -1246,6 +1276,12 @@ func UpdateChannel(c *gin.Context) {
 	}
 	if channel.Key != "" && channel.Key != originChannel.Key {
 		changedFields = append(changedFields, "key")
+	}
+	if channel.RpmLimit != originChannel.RpmLimit {
+		changedFields = append(changedFields, "rpm_limit")
+	}
+	if channel.TpmLimit != originChannel.TpmLimit {
+		changedFields = append(changedFields, "tpm_limit")
 	}
 	updateAudit := map[string]any{
 		"id":             channel.Id,

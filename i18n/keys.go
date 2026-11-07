@@ -23,6 +23,8 @@ const (
 	MsgRateLimitTotalReached  = "rate_limit.total_reached"
 	MsgTokenRateLimitReached  = "rate_limit.token_reached"
 	MsgTokenRateLimitNegative = "rate_limit.token_negative"
+	MsgChannelRateLimitReached  = "rate_limit.channel_reached"
+	MsgChannelRateLimitNegative = "rate_limit.channel_negative"
 
 	MsgDistributorInvalidRequest               = "distributor.invalid_request"
 	MsgDistributorInvalidChannelId             = "distributor.invalid_channel_id"
