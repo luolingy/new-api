@@ -63,10 +63,12 @@ jobs:
           fi
 
           # Registry token with pull+push+delete.
-          TJSON=$(curl -fsS -u "$DH_USER:$DH_TOKEN" \
+          code=$(curl -sS -o tok.json -w '%{http_code}' -u "$DH_USER:$DH_TOKEN" \
             "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPO}:pull,push,delete")
-          TOK=$(echo "$TJSON" | jq -r '.token')
-          echo "granted scope: $(echo "$TJSON" | jq -r '.scope // empty')"
+          echo "token endpoint HTTP $code"
+          if [ "$code" != "200" ]; then echo "token error body:"; cat tok.json; echo; exit 1; fi
+          TOK=$(jq -r '.token // empty' tok.json)
+          echo "granted scope: $(jq -r '.scope // empty' tok.json)"
           [ -z "$TOK" ] && { echo "::error::no registry token"; exit 1; }
 
           # Enumerate all tags (registry /tags/list, paginated via Link header).
