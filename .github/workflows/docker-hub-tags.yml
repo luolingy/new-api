@@ -1,10 +1,21 @@
 name: Docker Hub tags (list & prune)
 
+# Cleans up tags on luolingy/new-api.
+#
+# Tag deletion on Docker Hub MUST go through the registry v2 API
+# (registry-1.docker.io) by manifest digest; the hub.docker.com management API
+# rejects DELETE for PATs that only hold repo push scope. A digest can be shared
+# by several tags (e.g. the :main manifest index also backs main-<sha>), so a
+# digest is only deleted when NO kept tag resolves to it.
+#
+# The token must be a Docker Hub PAT with "Read, Write, Delete" scope. Provide it
+# via the `token` input (one-off runs) or the DOCKERHUB_TOKEN secret.
+
 on:
   workflow_dispatch:
     inputs:
       mode:
-        description: "'list' prints tags; 'prune' deletes everything except kept tags"
+        description: "list = print tags; prune = delete every tag not in `keep`"
         required: true
         default: list
         type: choice
@@ -12,86 +23,108 @@ on:
           - list
           - prune
       keep:
-        description: 'Comma-separated tags to KEEP (prune mode). Empty keeps nothing extra.'
+        description: "Comma-separated tags to KEEP (prune mode)."
         required: false
-        default: 'latest,main'
+        default: "latest,latest-amd64,latest-arm64,main,main-amd64,main-arm64"
         type: string
       dry_run:
-        description: 'prune only: print what would be deleted without deleting'
+        description: "prune only: preview without deleting"
         required: false
-        default: 'true'
+        default: "true"
         type: choice
         options:
-          - 'true'
-          - 'false'
+          - "true"
+          - "false"
+      token:
+        description: "Optional Docker Hub PAT (Read/Write/Delete). Empty uses DOCKERHUB_TOKEN secret."
+        required: false
+        default: ""
+        type: string
 
 jobs:
   manage:
     runs-on: ubuntu-latest
+    env:
+      DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
+      DH_TOKEN: ${{ inputs.token != '' && inputs.token || secrets.DOCKERHUB_TOKEN }}
+      MODE: ${{ inputs.mode }}
+      KEEP: ${{ inputs.keep }}
+      DRY_RUN: ${{ inputs.dry_run }}
+      REPO: luolingy/new-api
+      REG: registry-1.docker.io
     steps:
-      - name: List / prune luolingy/new-api tags
-        env:
-          DH_USER: ${{ secrets.DOCKERHUB_USERNAME }}
-          DH_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
-          MODE: ${{ inputs.mode }}
-          KEEP: ${{ inputs.keep }}
-          DRY_RUN: ${{ inputs.dry_run }}
+      - name: List / prune tags via registry v2 API
         run: |
           set -euo pipefail
-          REPO="luolingy/new-api"
-          AUTH=$(printf '%s:%s' "$DH_USER" "$DH_TOKEN" | base64 -w0)
+          ACCEPT='application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.manifest.v1+json'
 
-          # Fetch all tags (paginate).
-          page=1
-          : > all_tags.txt
-          while :; do
-            body=$(curl -fsSL -H "Authorization: Basic $AUTH" \
-              "https://hub.docker.com/v2/repositories/${REPO}/tags?page_size=100&page=${page}&ordering=last_updated")
-            names=$(echo "$body" | jq -r '.results[].name')
-            [ -z "$names" ] && break
-            echo "$names" >> all_tags.txt
-            count=$(echo "$body" | jq -r '.count')
-            next=$(echo "$body" | jq -r '.next // empty')
-            [ -z "$next" ] && break
-            page=$((page+1))
-          done
-
-          echo "=== All tags ($(wc -l < all_tags.txt)) ==="
-          sort all_tags.txt
-          {
-            echo "### All tags ($(wc -l < all_tags.txt))"
-            echo '```'
-            sort all_tags.txt
-            echo '```'
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$MODE" != "prune" ]; then
-            echo "List mode: no deletion."
-            exit 0
+          if [ -z "${DH_TOKEN:-}" ] || [ -z "${DH_USER:-}" ]; then
+            echo "::error::Docker Hub credentials missing"; exit 1
           fi
 
-          IFS=',' read -ra KEEP_ARR <<< "$KEEP"
-          keep_set=" "
-          for k in "${KEEP_ARR[@]}"; do
-            k=$(echo "$k" | xargs)
-            [ -n "$k" ] && keep_set="${keep_set}${k} "
-          done
+          # Registry token with pull+push+delete.
+          TJSON=$(curl -fsS -u "$DH_USER:$DH_TOKEN" \
+            "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPO}:pull,push,delete")
+          TOK=$(echo "$TJSON" | jq -r '.token')
+          echo "granted scope: $(echo "$TJSON" | jq -r '.scope // empty')"
+          [ -z "$TOK" ] && { echo "::error::no registry token"; exit 1; }
 
-          echo "=== Prune (keep:${keep_set}) dry_run=$DRY_RUN ==="
-          deleted=0
+          # Enumerate all tags (registry /tags/list, paginated via Link header).
+          : > tags.txt
+          URL="https://${REG}/v2/${REPO}/tags/list?n=1000"
+          while [ -n "$URL" ]; do
+            HDRS=$(mktemp)
+            BODY=$(curl -fsS -D "$HDRS" -H "Authorization: Bearer $TOK" "$URL")
+            echo "$BODY" | jq -r '.tags[]?' >> tags.txt
+            LINK=$(grep -i '^link:' "$HDRS" | sed -E 's/.*<([^>]+)>.*/\1/' | tr -d '\r' || true)
+            if [ -n "$LINK" ]; then URL="https://${REG}${LINK}"; else URL=""; fi
+            rm -f "$HDRS"
+          done
+          sort -u tags.txt -o tags.txt
+          echo "=== %%% ALL TAGS ($(wc -l < tags.txt)) %%% ==="
+          cat tags.txt
+          { echo "### All tags ($(wc -l < tags.txt))"; echo '```'; cat tags.txt; echo '```'; } >> "$GITHUB_STEP_SUMMARY"
+
+          if [ "$MODE" != "prune" ]; then echo "List mode: no deletion."; exit 0; fi
+
+          # Normalise keep list.
+          IFS=',' read -ra KA <<< "$KEEP"
+          : > keep.txt
+          for k in "${KA[@]}"; do k=$(echo "$k" | xargs); [ -n "$k" ] && echo "$k" >> keep.txt; done
+          sort -u keep.txt -o keep.txt
+
+          # Resolve digest of every tag.
+          : > tagdigest.txt
           while read -r tag; do
             [ -z "$tag" ] && continue
-            case "$keep_set" in
-              *" $tag "*) echo "KEEP   $tag"; continue ;;
-            esac
+            d=$(curl -fsSI -H "Authorization: Bearer $TOK" -H "Accept: $ACCEPT" \
+                 "https://${REG}/v2/${REPO}/manifests/${tag}" \
+                 | grep -i '^docker-content-digest:' | sed -E 's/.*: *//' | tr -d '\r' || true)
+            [ -n "$d" ] && echo "$tag $d" >> tagdigest.txt
+          done < tags.txt
+
+          # Digests referenced by kept tags must never be deleted.
+          : > keep_digests.txt
+          while read -r tag digest; do
+            if grep -qx "$tag" keep.txt; then echo "$digest" >> keep_digests.txt; fi
+          done < tagdigest.txt
+          sort -u keep_digests.txt -o keep_digests.txt
+
+          # Delete junk tags; dedupe digests; skip any digest used by a kept tag.
+          : > deleted_digests.txt
+          echo "=== PRUNE (dry_run=$DRY_RUN) ==="
+          while read -r tag digest; do
+            if grep -qx "$tag" keep.txt; then echo "KEEP        $tag"; continue; fi
+            if grep -qx "$digest" keep_digests.txt; then echo "KEEP-SHARED $tag ($digest)"; continue; fi
+            if grep -qx "$digest" deleted_digests.txt; then echo "DEDUP       $tag ($digest already removed)"; continue; fi
             if [ "$DRY_RUN" = "true" ]; then
-              echo "WOULD DELETE $tag"
+              echo "WOULD DEL   $tag ($digest)"
             else
               code=$(curl -s -o /dev/null -w '%{http_code}' -X DELETE \
-                -H "Authorization: Basic $AUTH" \
-                "https://hub.docker.com/v2/repositories/${REPO}/tags/${tag}/")
-              echo "DELETE $tag -> $code"
-              deleted=$((deleted+1))
+                -H "Authorization: Bearer $TOK" \
+                "https://${REG}/v2/${REPO}/manifests/${digest}")
+              echo "DELETE      $tag ($digest) -> $code"
+              [ "$code" = "202" ] && echo "$digest" >> deleted_digests.txt
             fi
-          done < <(sort all_tags.txt)
-          echo "Done. deleted=$deleted"
+          done < tagdigest.txt
+          echo "Done. digests deleted: $(wc -l < deleted_digests.txt)"
