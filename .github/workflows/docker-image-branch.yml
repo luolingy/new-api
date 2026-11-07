@@ -103,7 +103,6 @@ jobs:
           push: true
           tags: |
             luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }}-${{ matrix.arch }}
-            luolingy/new-api:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
@@ -122,7 +121,6 @@ jobs:
           echo "### Docker Image Digest (${{ matrix.arch }})" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
-          echo "luolingy/new-api:${{ needs.prepare.outputs.version }}-${{ matrix.arch }}" >> $GITHUB_STEP_SUMMARY
           echo "${{ steps.build.outputs.digest }}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
 
@@ -146,13 +144,6 @@ jobs:
             luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }}-amd64 \
             luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }}-arm64
 
-      - name: Create & push manifest (Docker Hub - versioned)
-        run: |
-          docker buildx imagetools create \
-            -t luolingy/new-api:${{ needs.prepare.outputs.version }} \
-            luolingy/new-api:${{ needs.prepare.outputs.version }}-amd64 \
-            luolingy/new-api:${{ needs.prepare.outputs.version }}-arm64
-
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
@@ -160,13 +151,10 @@ jobs:
         continue-on-error: true
         run: |
           cosign sign --yes luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }}
-          cosign sign --yes luolingy/new-api:${{ needs.prepare.outputs.version }}
 
       - name: Output manifest digest
         run: |
           echo "### Multi-arch Manifest Digests" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           docker buildx imagetools inspect luolingy/new-api:${{ needs.prepare.outputs.tag_prefix }} >> $GITHUB_STEP_SUMMARY
-          echo "---" >> $GITHUB_STEP_SUMMARY
-          docker buildx imagetools inspect luolingy/new-api:${{ needs.prepare.outputs.version }} >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
