@@ -58,12 +58,15 @@ jobs:
           set -euo pipefail
           ACCEPT='application/vnd.docker.distribution.manifest.list.v2+json,application/vnd.oci.image.index.v1+json,application/vnd.docker.distribution.manifest.v2+json,application/vnd.oci.image.manifest.v1+json'
 
-          if [ -z "${DH_TOKEN:-}" ] || [ -z "${DH_USER:-}" ]; then
-            echo "::error::Docker Hub credentials missing"; exit 1
+          if [ -z "${DH_TOKEN:-}" ]; then
+            echo "::error::Docker Hub token missing"; exit 1
           fi
 
           # Registry token with pull+push+delete.
-          code=$(curl -sS -o tok.json -w '%{http_code}' -u "$DH_USER:$DH_TOKEN" \
+          # Build Basic auth explicitly (trim any stray whitespace in secrets).
+          USER="luolingy"
+          BAUTH=$(printf '%s:%s' "$USER" "$(printf '%s' "$DH_TOKEN" | tr -d '[:space:]')" | base64 -w0)
+          code=$(curl -sS -o tok.json -w '%{http_code}' -H "Authorization: Basic $BAUTH" \
             "https://auth.docker.io/token?service=registry.docker.io&scope=repository:${REPO}:pull,push,delete")
           echo "token endpoint HTTP $code"
           if [ "$code" != "200" ]; then echo "token error body:"; cat tok.json; echo; exit 1; fi
