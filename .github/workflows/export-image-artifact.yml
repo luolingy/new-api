@@ -1,0 +1,42 @@
+name: Export image artifact
+
+# One-off utility: pull the published image on a GitHub runner (which can reach
+# Docker Hub), save it to a tarball and upload it as a workflow artifact. Used to
+# move the image onto hosts that cannot reach Docker Hub directly.
+
+on:
+  workflow_dispatch:
+    inputs:
+      image:
+        description: "Image reference to export"
+        required: true
+        default: "luolingy/new-api:main"
+        type: string
+      platform:
+        description: "Platform (e.g. linux/amd64)"
+        required: true
+        default: "linux/amd64"
+        type: string
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Pull image
+        run: docker pull --platform "${{ inputs.platform }}" "${{ inputs.image }}"
+
+      - name: Save image to tarball
+        run: |
+          set -euo pipefail
+          NAME=$(echo "${{ inputs.image }}" | tr '/:' '__')
+          OUT="${NAME}.tar.gz"
+          docker save "${{ inputs.image }}" | gzip -1 > "$OUT"
+          echo "Saved $OUT ($(du -h "$OUT" | cut -f1))"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: image-${{ inputs.platform == 'linux/amd64' && 'amd64' || 'arm64' }}
+          path: ${{ env.OUT }}
+          retention-days: 3
