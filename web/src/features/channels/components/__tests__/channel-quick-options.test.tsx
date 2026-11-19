@@ -53,6 +53,7 @@ type HarnessProps = {
   channelType?: number
   layout?: 'stacked' | 'inline'
   values?: Partial<ChannelFormValues>
+  disabled?: boolean
   confirm: (kind: PassthroughKind) => Promise<boolean>
   onSave?: (values: ChannelFormValues) => void
 }
@@ -85,7 +86,7 @@ function QuickOptionsHarness(props: HarnessProps) {
             <ChannelQuickOptions
               channelType={channelType}
               sensitiveLocked={false}
-              disabled={false}
+              disabled={props.disabled ?? false}
               layout={props.layout}
               confirmEnablePassthrough={props.confirm}
             />
@@ -314,6 +315,86 @@ test('task plugin channels hide both passthrough switches', () => {
   expect(
     screen.getByRole('switch', { name: 'Auto-disable channel' })
   ).toBeInTheDocument()
+})
+
+describe('chat to Responses channel policy', () => {
+  test.each([undefined, true, false])(
+    'preserves %s through create, update and reload',
+    (enabled) => {
+      const channel = channelSchema.parse({
+        id: 42,
+        name: 'Conversion channel',
+        type: 1,
+        key: '',
+        status: 1,
+        created_time: 0,
+        test_time: 0,
+        response_time: 0,
+        balance_updated_time: 0,
+        setting: JSON.stringify({
+          chat_completions_to_responses_enabled: enabled,
+        }),
+      })
+      const values = transformChannelToFormDefaults(channel)
+      expect(values.chat_completions_to_responses_enabled).toBe(enabled)
+      for (const payload of [
+        transformFormDataToCreatePayload(values).channel,
+        transformFormDataToUpdatePayload(values, channel.id),
+      ]) {
+        const setting = JSON.parse(payload.setting ?? '{}')
+        expect(setting.chat_completions_to_responses_enabled).toBe(enabled)
+        expect(
+          Object.hasOwn(setting, 'chat_completions_to_responses_enabled')
+        ).toBe(enabled !== undefined)
+        expect(
+          transformChannelToFormDefaults({ ...channel, ...payload })
+            .chat_completions_to_responses_enabled
+        ).toBe(enabled)
+      }
+    }
+  )
+
+  test.each(['stacked', 'inline'] as const)(
+    '%s selection allows enabled, disabled and inheritance',
+    async (layout) => {
+      const user = userEvent.setup()
+      const saved: ChannelFormValues[] = []
+      render(
+        <QuickOptionsHarness
+          layout={layout}
+          confirm={() => Promise.resolve(true)}
+          onSave={(values) => saved.push(values)}
+        />
+      )
+      const select = screen.getByRole('combobox', {
+        name: 'Chat Completions to Responses',
+      })
+      expect(select).toHaveValue('inherit')
+      for (const [option, expected] of [
+        ['enabled', true],
+        ['disabled', false],
+        ['inherit', undefined],
+      ] as const) {
+        await user.selectOptions(select, option)
+        await user.click(screen.getByRole('button', { name: 'Save' }))
+        await waitFor(() =>
+          expect(saved.at(-1)?.chat_completions_to_responses_enabled).toBe(
+            expected
+          )
+        )
+      }
+      expect(saved).toHaveLength(3)
+    }
+  )
+
+  test('disabled editor prevents conversion policy changes', () => {
+    render(
+      <QuickOptionsHarness disabled confirm={() => Promise.resolve(true)} />
+    )
+    expect(
+      screen.getByRole('combobox', { name: 'Chat Completions to Responses' })
+    ).toBeDisabled()
+  })
 })
 
 describe('responses websocket quick option', () => {

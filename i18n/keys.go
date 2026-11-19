@@ -19,10 +19,10 @@ const (
 	MsgAuthTokenGroupDeprecated   = "auth.token_group_deprecated"
 	MsgAuthChannelSelectForbidden = "auth.channel_select_forbidden"
 
-	MsgRateLimitReached       = "rate_limit.reached"
-	MsgRateLimitTotalReached  = "rate_limit.total_reached"
-	MsgTokenRateLimitReached  = "rate_limit.token_reached"
-	MsgTokenRateLimitNegative = "rate_limit.token_negative"
+	MsgRateLimitReached         = "rate_limit.reached"
+	MsgRateLimitTotalReached    = "rate_limit.total_reached"
+	MsgTokenRateLimitReached    = "rate_limit.token_reached"
+	MsgTokenRateLimitNegative   = "rate_limit.token_negative"
 	MsgChannelRateLimitReached  = "rate_limit.channel_reached"
 	MsgChannelRateLimitNegative = "rate_limit.channel_negative"
 
@@ -56,6 +56,8 @@ const (
 	MsgRelayRequestRejected              = "relay.request_rejected"
 	MsgRelayRequestPluginFailed          = "relay.request_plugin_failed"
 	MsgRelayResponseRejected             = "relay.response_rejected"
+	MsgRelayUpstreamErrorPrefix          = "relay.error_prefix_upstream"
+	MsgRelayLocalErrorPrefix             = "relay.error_prefix_local"
 )
 
 // Emails and the name of the token created at registration, in the

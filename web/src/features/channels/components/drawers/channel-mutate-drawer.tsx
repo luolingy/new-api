@@ -227,6 +227,7 @@ import {
 } from '../dialogs/passthrough-warning-dialog'
 import { PluginLoginDialog } from '../dialogs/plugin-login-dialog'
 import { StatusCodeRiskDialog } from '../dialogs/status-code-risk-dialog'
+import { HeaderPresetButtons } from '../header-preset-buttons'
 import {
   ModelMappingBatchDialog,
   type ModelMappingBatchResult,
@@ -342,6 +343,7 @@ const SENSITIVE_FORM_FIELDS = [
   'tls_insecure_skip_verify',
   'pass_through_body_enabled',
   'responses_websocket_enabled',
+  'chat_completions_to_responses_enabled',
   'system_prompt',
   'system_prompt_override',
   'allow_service_tier',
@@ -3094,6 +3096,11 @@ export function ChannelMutateDrawer({
                   heightClassName='h-40 min-h-40 max-h-40'
                 />
               </FormControl>
+              <HeaderPresetButtons
+                value={field.value}
+                onChange={field.onChange}
+                disabled={sensitiveLocked || isSubmitting}
+              />
               <FormDescription className='text-xs'>
                 {t('Supported variables')}:{' '}
                 <code className='bg-muted rounded px-1 py-0.5'>

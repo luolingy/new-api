@@ -1121,8 +1121,8 @@ func TestReplyStopsNonStreamAnswers(t *testing.T) {
 		{"id":"plain","name":"Plain","plugin":"rp-reply","enabled":true,"global":true,"config":{"stop":"blocked"}}
 	]`)
 	for _, test := range []struct{ content, message, instance string }{
-		{"a forbidden answer", "Not allowed (code: reply.blocked) (request id: req-1)", "policy"},
-		{"a blocked answer", "Response stopped by policy (code: reply.blocked) (request id: req-1)", "plain"},
+		{"a forbidden answer", "Gateway error: Not allowed (code: reply.blocked) (request id: req-1)", "policy"},
+		{"a blocked answer", "Gateway error: Response stopped by policy (code: reply.blocked) (request id: req-1)", "plain"},
 	} {
 		c, recorder := replyContext(t, "/v1/chat/completions", types.RelayFormatOpenAI)
 		info := replyInfo(types.RelayFormatOpenAI, relayconstant.RelayModeChatCompletions)
@@ -1405,7 +1405,7 @@ func TestReplyStopsStreams(t *testing.T) {
 	require.Len(t, data, 3)
 	assert.Equal(t, "A harmless opening that is long enough to be checked. ", gjson.Get(data[0], "choices.0.delta.content").Str)
 	assert.Equal(t, "response_rejected", gjson.Get(data[1], "error.code").Str)
-	assert.Equal(t, "Response stopped by policy (code: reply.blocked) (request id: req-1)", gjson.Get(data[1], "error.message").Str)
+	assert.Equal(t, "Gateway error: Response stopped by policy (code: reply.blocked) (request id: req-1)", gjson.Get(data[1], "error.message").Str)
 	assert.Equal(t, "[DONE]", data[2])
 	assert.NotContains(t, body, "forbidden")
 	assert.Equal(t, &relaycommon.RequestPluginRejected{Code: "reply.blocked"}, info.RequestPluginRecord[0].Rejected)

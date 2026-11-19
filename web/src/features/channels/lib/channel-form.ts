@@ -275,6 +275,7 @@ export const channelFormSchema = z
     tls_insecure_skip_verify: z.boolean().optional(),
     pass_through_body_enabled: z.boolean().optional(),
     responses_websocket_enabled: z.boolean().optional(),
+    chat_completions_to_responses_enabled: z.boolean().optional(),
     system_prompt: z.string().optional(),
     system_prompt_override: z.boolean().optional(),
     // Type-specific settings (stored in settings JSON)
@@ -531,6 +532,7 @@ export function transformChannelToFormDefaults(
     tls_insecure_skip_verify: false,
     pass_through_body_enabled: false,
     responses_websocket_enabled: false,
+    chat_completions_to_responses_enabled: undefined as boolean | undefined,
     system_prompt: '',
     system_prompt_override: false,
   }
@@ -559,6 +561,10 @@ export function transformChannelToFormDefaults(
         pass_through_body_enabled: parsed.pass_through_body_enabled || false,
         responses_websocket_enabled:
           parsed.responses_websocket_enabled === true,
+        chat_completions_to_responses_enabled:
+          typeof parsed.chat_completions_to_responses_enabled === 'boolean'
+            ? parsed.chat_completions_to_responses_enabled
+            : undefined,
         system_prompt: parsed.system_prompt || '',
         system_prompt_override: parsed.system_prompt_override || false,
       }
@@ -709,6 +715,8 @@ export function buildSettingJSON(formData: ChannelFormValues): string {
     thinking_to_content: formData.thinking_to_content || false,
     proxy: formData.proxy?.trim() || '',
     pass_through_body_enabled: formData.pass_through_body_enabled === true,
+    chat_completions_to_responses_enabled:
+      formData.chat_completions_to_responses_enabled,
     // A plugin channel shows the switch only when its plugin can serve it.
     responses_websocket_enabled:
       (supportsResponsesWebSocket(formData.type) ||

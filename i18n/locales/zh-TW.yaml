@@ -48,6 +48,8 @@ relay.access_token_unsupported: "暫不支援使用 access token"
 relay.request_rejected: "請求被策略拒絕"
 relay.request_plugin_failed: "請求處理插件執行失敗"
 relay.response_rejected: "回覆被策略中止"
+relay.error_prefix_upstream: "上游錯誤："
+relay.error_prefix_local: "本站錯誤："
 
 # Emails and the name of the token created at registration
 user.default_token_name: "{{.Username}}的初始令牌"

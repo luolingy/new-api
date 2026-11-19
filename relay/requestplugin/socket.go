@@ -16,6 +16,7 @@ import (
 	relaycommon "github.com/QuantumNous/new-api/relay/common"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
+	"github.com/QuantumNous/new-api/service"
 	"github.com/QuantumNous/new-api/setting/request_plugin_setting"
 
 	"github.com/gin-gonic/gin"
@@ -294,7 +295,7 @@ func (r *Realtime) ClientEvent(eventType string, message []byte) (patched []byte
 		}
 	}
 	if apiErr != nil {
-		r.toClient(realtimeError(apiErr, gjson.GetBytes(message, "event_id").Str))
+		r.toClient(realtimeError(r.c, apiErr, gjson.GetBytes(message, "event_id").Str))
 		return nil, true
 	}
 	return patched, false
@@ -381,8 +382,8 @@ func (e errRealtimeMember) Error() string {
 
 // realtimeError is a Realtime error event for a client event the instances
 // stopped, or for a response they stopped (eventID "").
-func realtimeError(apiErr *types.NewAPIError, eventID string) []byte {
-	openAIErr := apiErr.ToOpenAIError()
+func realtimeError(c *gin.Context, apiErr *types.NewAPIError, eventID string) []byte {
+	openAIErr := service.OpenAIErrorToClient(c, apiErr)
 	errorObject := gin.H{"type": openAIErr.Type, "code": openAIErr.Code, "message": openAIErr.Message, "param": openAIErr.Param}
 	if eventID != "" {
 		errorObject["event_id"] = eventID
@@ -618,7 +619,7 @@ func (r *Realtime) done(response *realtimeResponse, message []byte, usage *dto.R
 // events are dropped until its response.done.
 func (r *Realtime) stop(response *realtimeResponse, cancel bool) {
 	r.stopping++
-	response.out(r, realtimeError(response.stopped(), ""))
+	response.out(r, realtimeError(r.c, response.stopped(), ""))
 	if !cancel {
 		return
 	}

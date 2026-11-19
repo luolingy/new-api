@@ -536,7 +536,10 @@ func TestHTTPResponsesRequestOmitsWebSocketMetadata(t *testing.T) {
 }
 
 func TestBuildResponsesWSErrorPayloadIncludesStatus(t *testing.T) {
-	payload, err := buildResponsesWSErrorPayload("evt_err", "", types.NewErrorWithStatusCode(
+	require.NoError(t, i18n.Init())
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+	payload, err := buildResponsesWSErrorPayload(c, "evt_err", "", types.NewErrorWithStatusCode(
 		errors.New("model is required"),
 		types.ErrorCodeInvalidRequest,
 		http.StatusBadRequest,
@@ -563,7 +566,10 @@ func TestBuildResponsesWSErrorPayloadIncludesStatus(t *testing.T) {
 }
 
 func TestResponsesWSInvalidRequestErrorUsesBadRequestStatus(t *testing.T) {
-	payload, err := buildResponsesWSErrorPayload("", "", newResponsesWSInvalidRequestError(errors.New("bad event")))
+	require.NoError(t, i18n.Init())
+	c, _ := gin.CreateTestContext(httptest.NewRecorder())
+	c.Request = httptest.NewRequest(http.MethodPost, "/v1/responses", nil)
+	payload, err := buildResponsesWSErrorPayload(c, "", "", newResponsesWSInvalidRequestError(errors.New("bad event")))
 	if err != nil {
 		t.Fatalf("buildResponsesWSErrorPayload() error = %v", err)
 	}

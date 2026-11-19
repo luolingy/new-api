@@ -13,9 +13,12 @@ import (
 
 	"github.com/QuantumNous/new-api/common"
 	taskdto "github.com/QuantumNous/new-api/dto"
+	"github.com/QuantumNous/new-api/i18n"
 	"github.com/QuantumNous/new-api/logger"
 	"github.com/QuantumNous/new-api/relaykit/dto"
 	"github.com/QuantumNous/new-api/relaykit/types"
+
+	"github.com/gin-gonic/gin"
 )
 
 func MidjourneyErrorWrapper(code int, desc string) *taskdto.MidjourneyResponse {
@@ -82,6 +85,35 @@ func ClaudeErrorWrapperLocal(err error, code string, statusCode int) *dto.Claude
 	claudeErr := ClaudeErrorWrapper(err, code, statusCode)
 	claudeErr.LocalError = true
 	return claudeErr
+}
+
+// ErrorOriginPrefix returns the client-facing prefix that tells whether a
+// relay failure came from the upstream provider or from this gateway itself,
+// in the language of the request. OpenAI and Claude error messages are
+// prefixed by OpenAIErrorToClient and ClaudeErrorToClient; formats that
+// render their own error body (for example task endpoints) call it directly.
+func ErrorOriginPrefix(c *gin.Context, upstream bool) string {
+	if upstream {
+		return i18n.T(c, i18n.MsgRelayUpstreamErrorPrefix)
+	}
+	return i18n.T(c, i18n.MsgRelayLocalErrorPrefix)
+}
+
+// OpenAIErrorToClient renders the OpenAI-format error the client of a relay
+// receives, with the origin of the failure (upstream provider or this
+// gateway) prefixed to the message.
+func OpenAIErrorToClient(c *gin.Context, err *types.NewAPIError, upstreamURLs ...string) types.OpenAIError {
+	openAIError := err.ToOpenAIError(upstreamURLs...)
+	openAIError.Message = ErrorOriginPrefix(c, err.IsUpstreamError()) + openAIError.Message
+	return openAIError
+}
+
+// ClaudeErrorToClient renders the Anthropic-format error the client of a
+// relay receives, with the same origin prefix as OpenAIErrorToClient.
+func ClaudeErrorToClient(c *gin.Context, err *types.NewAPIError, upstreamURLs ...string) types.ClaudeError {
+	claudeError := err.ToClaudeError(upstreamURLs...)
+	claudeError.Message = ErrorOriginPrefix(c, err.IsUpstreamError()) + claudeError.Message
+	return claudeError
 }
 
 func RelayErrorHandler(ctx context.Context, resp *http.Response, showBodyWhenFail bool) (newApiErr *types.NewAPIError) {

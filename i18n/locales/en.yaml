@@ -47,6 +47,8 @@ relay.access_token_unsupported: "Access tokens are not supported here"
 relay.request_rejected: "Request rejected by policy"
 relay.request_plugin_failed: "A request plugin failed"
 relay.response_rejected: "Response stopped by policy"
+relay.error_prefix_upstream: "Upstream error: "
+relay.error_prefix_local: "Gateway error: "
 
 # Emails and the name of the token created at registration
 user.default_token_name: "{{.Username}}'s initial token"

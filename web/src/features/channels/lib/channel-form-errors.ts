@@ -41,6 +41,7 @@ const ADVANCED_SETTINGS_FIELDS = new Set<FieldPath<ChannelFormValues>>([
   'thinking_to_content',
   'pass_through_body_enabled',
   'responses_websocket_enabled',
+  'chat_completions_to_responses_enabled',
   'proxy',
   'http_protocol',
   'http2_connection_shards',

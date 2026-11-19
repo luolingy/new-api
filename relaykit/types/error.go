@@ -378,6 +378,31 @@ func IsChannelError(err *NewAPIError) bool {
 	return strings.HasPrefix(string(err.errorCode), "channel:")
 }
 
+// IsUpstreamError identifies provider responses and upstream transport failures.
+// Follow wrapped API errors so a host wrapper does not hide their origin.
+func (e *NewAPIError) IsUpstreamError() bool {
+	if e == nil {
+		return false
+	}
+	for {
+		var inner *NewAPIError
+		if !errors.As(e.Err, &inner) || inner == e {
+			break
+		}
+		e = inner
+	}
+	if e.errorCode == ErrorCodeDoRequestFailed {
+		return true
+	}
+	switch e.errorType {
+	case ErrorTypeOpenAIError, ErrorTypeClaudeError, ErrorTypeMidjourneyError,
+		ErrorTypeGeminiError, ErrorTypeRerankError, ErrorTypeUpstreamError:
+		return true
+	default:
+		return false
+	}
+}
+
 func IsSkipRetryError(err *NewAPIError) bool {
 	if err == nil {
 		return false

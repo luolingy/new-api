@@ -44,6 +44,16 @@ func ShouldChatCompletionsUseResponsesPolicy(policy model_setting.ChatCompletion
 	return matchAnyModelPattern(policy.ModelPatterns, model)
 }
 
+// ShouldChatCompletionsUseResponses gives an explicit channel setting priority
+// over the global policy, including its model filters. An unset setting keeps
+// existing channels on their current global policy.
+func ShouldChatCompletionsUseResponses(channelEnabled *bool, channelID int, channelType int, model string) bool {
+	if channelEnabled != nil {
+		return *channelEnabled
+	}
+	return ShouldChatCompletionsUseResponsesGlobal(channelID, channelType, model)
+}
+
 func ShouldChatCompletionsUseResponsesGlobal(channelID int, channelType int, model string) bool {
 	return ShouldChatCompletionsUseResponsesPolicy(
 		model_setting.GetGlobalSettings().ChatCompletionsToResponsesPolicy,

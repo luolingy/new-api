@@ -34,6 +34,7 @@ import {
   setHeaderPassthrough,
 } from '../lib/header-passthrough'
 import { supportsResponsesWebSocket } from '../lib/responses-websocket'
+import { ChatResponsesSetting } from './chat-responses-setting'
 import type { PassthroughKind } from './dialogs/passthrough-warning-dialog'
 
 type ChannelQuickOptionsProps = {
@@ -189,6 +190,13 @@ export function ChannelQuickOptions(props: ChannelQuickOptionsProps) {
         aria-label={t('Quick options')}
         className={cn('flex flex-wrap items-center gap-2', props.className)}
       >
+        {props.channelType !== CHANNEL_TYPE_TASK_PLUGIN && (
+          <ChatResponsesSetting
+            form={form}
+            disabled={sensitiveDisabled}
+            inline
+          />
+        )}
         {options.map((option) => (
           <div
             key={option.key}
@@ -231,6 +239,13 @@ export function ChannelQuickOptions(props: ChannelQuickOptionsProps) {
         {t('Quick options')}
       </h3>
       <FieldGroup className='grid gap-x-6 gap-y-0 @sm:grid-cols-2'>
+        {props.channelType !== CHANNEL_TYPE_TASK_PLUGIN && (
+          <ChatResponsesSetting
+            form={form}
+            disabled={sensitiveDisabled}
+            inline={false}
+          />
+        )}
         {options.map((option) => (
           <SettingsSwitchField
             key={option.key}
