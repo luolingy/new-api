@@ -148,6 +148,10 @@ func recordLoginAudit(user *model.User, c *gin.Context) {
 // pending legacy GitHub binding rewrite travels inside the challenge and is
 // written only when the verification completes.
 func setupLogin(user *model.User, migration *service.LegacyGitHubMigration, c *gin.Context) {
+	if user != nil && user.Status == common.UserStatusPendingApproval {
+		common.ApiErrorT(c, "Your account is awaiting administrator approval")
+		return
+	}
 	challenge, err := service.StartLoginVerification(user, loginMethodFromContext(c), migration)
 	if err != nil {
 		writeSecurityOperationError(c, err)
@@ -162,6 +166,10 @@ func setupLogin(user *model.User, migration *service.LegacyGitHubMigration, c *g
 }
 
 func setupLoginAtAuthVersion(user *model.User, expectedAuthVersion int64, c *gin.Context) {
+	if user != nil && user.Status == common.UserStatusPendingApproval {
+		common.ApiErrorT(c, "Your account is awaiting administrator approval")
+		return
+	}
 	if user == nil || user.Id <= 0 || user.Status != common.UserStatusEnabled {
 		common.ApiErrorT(c, "User has been banned")
 		return
@@ -1126,6 +1134,16 @@ func ManageUser(c *gin.Context) {
 			return
 		}
 	case "enable":
+		if user.Status == common.UserStatusPendingApproval {
+			common.ApiErrorT(c, "Pending users must be approved before they can sign in")
+			return
+		}
+		user.Status = common.UserStatusEnabled
+	case "approve":
+		if user.Status != common.UserStatusPendingApproval {
+			common.ApiErrorT(c, "User is not awaiting approval")
+			return
+		}
 		user.Status = common.UserStatusEnabled
 	case "delete":
 		if user.Role == common.RoleRootUser {

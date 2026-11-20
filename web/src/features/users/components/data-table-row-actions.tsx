@@ -66,6 +66,7 @@ import { useUsers } from './users-provider'
 const MANAGE_ACTION_TITLES: Record<AdminUserManageAction, string> = {
   disable: 'Verify to disable user',
   enable: 'Verify to enable user',
+  approve: 'Verify to approve user',
   promote: 'Verify to promote user',
   demote: 'Verify to demote user',
 }
@@ -185,6 +186,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
   }
 
   const isDisabled = user.status === USER_STATUS.DISABLED
+  const isPendingApproval = user.status === USER_STATUS.PENDING_APPROVAL
   const isAdmin = user.role >= USER_ROLE.ADMIN
   const isRoot = user.role === USER_ROLE.ROOT
 
@@ -214,14 +216,23 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         ariaLabel={t('Open menu')}
         contentClassName='w-48'
       >
-        {isDisabled ? (
+        {isPendingApproval && (
+          <DropdownMenuItem onClick={() => handleManage('approve')}>
+            {t('Approve')}
+            <DropdownMenuShortcut>
+              <Power size={16} />
+            </DropdownMenuShortcut>
+          </DropdownMenuItem>
+        )}
+        {!isPendingApproval && isDisabled && (
           <DropdownMenuItem onClick={() => handleManage('enable')}>
             {t('Enable')}
             <DropdownMenuShortcut>
               <Power size={16} />
             </DropdownMenuShortcut>
           </DropdownMenuItem>
-        ) : (
+        )}
+        {!isPendingApproval && !isDisabled && (
           <DropdownMenuItem
             onClick={() => handleManage('disable')}
             disabled={isRoot}

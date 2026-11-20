@@ -335,6 +335,10 @@ func handleOAuthLogin(c *gin.Context, provider oauth.Provider, oauthUser *oauth.
 	}
 
 	// 8. Check user status
+	if user.Status == common.UserStatusPendingApproval {
+		common.ApiErrorT(c, "Your account is awaiting administrator approval")
+		return
+	}
 	if user.Status != common.UserStatusEnabled {
 		common.ApiErrorT(c, "User has been banned")
 		return
@@ -539,6 +543,9 @@ func findOrCreateOAuthUser(c *gin.Context, provider oauth.Provider, oauthUser *o
 	}
 	user.Role = common.RoleCommonUser
 	user.Status = common.UserStatusEnabled
+	if common.OAuthRegistrationApprovalEnabled {
+		user.Status = common.UserStatusPendingApproval
+	}
 
 	// Handle affiliate code
 	inviterId := 0

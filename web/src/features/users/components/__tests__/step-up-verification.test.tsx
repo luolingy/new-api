@@ -198,3 +198,46 @@ it('disabling a user from the row menu binds the proof to the user and action', 
     expect.anything()
   )
 })
+
+it('approving a pending user sends a single-use proof bound to the user and approval action', async () => {
+  const proof = mockVerification('admin.user.manage', 'approve-proof')
+  const post = vi.spyOn(api, 'post').mockImplementation(async (url) => {
+    if (url === '/api/verify') return proof
+    if (url === '/api/user/manage') return { data: { success: true } }
+    throw new Error(`Unexpected POST ${url}`)
+  })
+  renderInProvider(
+    <DataTableRowActions
+      row={{ original: { ...target, status: 3 } } as Row<User>}
+    />
+  )
+  await userEvent.click(screen.getByRole('button', { name: 'Open menu' }))
+  await userEvent.click(
+    await screen.findByRole('menuitem', { name: 'Approve' })
+  )
+  await screen.findByLabelText('Authenticator code or backup code')
+  expect(post).not.toHaveBeenCalledWith(
+    '/api/user/manage',
+    expect.anything(),
+    expect.anything()
+  )
+  await completeTwoFactorVerification()
+  await waitFor(() =>
+    expect(post).toHaveBeenCalledWith(
+      '/api/user/manage',
+      { id: 2, action: 'approve' },
+      expect.objectContaining({
+        headers: { 'X-Security-Proof': 'approve-proof' },
+        singleUseAuthorization: true,
+      })
+    )
+  )
+  expect(post).toHaveBeenCalledWith(
+    '/api/verify',
+    expect.objectContaining({
+      scope: 'admin.user.manage',
+      context: { user_id: 2, action: 'approve' },
+    }),
+    expect.anything()
+  )
+})

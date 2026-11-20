@@ -126,6 +126,29 @@ func manageUserProof(t *testing.T, db *gorm.DB, operation service.VerificationOp
 	return identity, proof
 }
 
+func TestManageUserApprovePendingUserAndRejectsEnableBypass(t *testing.T) {
+	db := setupManageUserTestDB(t)
+	user := model.User{
+		Username: "pending-oauth-user", Password: "password", Role: common.RoleCommonUser,
+		Status: common.UserStatusPendingApproval, Group: "default", AuthVersion: 1,
+	}
+	require.NoError(t, db.Create(&user).Error)
+
+	recorder := performManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"enable"}`, user.Id))
+	assert.Contains(t, recorder.Body.String(), `"success":false`)
+	require.NoError(t, db.First(&user, user.Id).Error)
+	assert.Equal(t, common.UserStatusPendingApproval, user.Status)
+
+	identity, proof := manageUserProof(t, db, service.VerificationOperation{Scope: service.VerificationScopeAdminUserManage, Context: []byte(fmt.Sprintf(`{"user_id":%d,"action":"approve"}`, user.Id))})
+	recorder = performVerifiedManageUserRequest(t, fmt.Sprintf(`{"id":%d,"action":"approve"}`, user.Id), identity, proof)
+	assert.Equal(t, http.StatusOK, recorder.Code)
+	assert.Contains(t, recorder.Body.String(), `"success":true`)
+
+	require.NoError(t, db.First(&user, user.Id).Error)
+	assert.Equal(t, common.UserStatusEnabled, user.Status)
+	assert.EqualValues(t, 2, user.AuthVersion)
+}
+
 func TestManageUserDisableAdvancesAuthVersionOnceAndRevokesSession(t *testing.T) {
 	db := setupManageUserTestDB(t)
 	now := time.Now().Unix()

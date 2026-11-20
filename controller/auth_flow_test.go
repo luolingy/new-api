@@ -722,6 +722,36 @@ func TestGenerateOAuthCodeBindsFlowToAuthenticatedSession(t *testing.T) {
 	assert.Equal(t, identity.SessionID, flow.SessionId)
 }
 
+func TestOAuthRegistrationWaitsForAdministratorApproval(t *testing.T) {
+	setupAuthFlowControllerTest(t)
+	previousRegister, previousApproval := common.RegisterEnabled, common.OAuthRegistrationApprovalEnabled
+	common.RegisterEnabled, common.OAuthRegistrationApprovalEnabled = true, true
+	t.Cleanup(func() {
+		common.RegisterEnabled, common.OAuthRegistrationApprovalEnabled = previousRegister, previousApproval
+	})
+	token, _, err := model.CreateAuthFlow(model.AuthFlowCreate{
+		Purpose: model.AuthFlowPurposeOAuth, Provider: "auth-flow-test", Intent: model.AuthFlowIntentLogin,
+		Payload: `{}`, ExpiresAt: time.Now().Add(time.Minute),
+	})
+	require.NoError(t, err)
+
+	router := gin.New()
+	router.GET("/api/oauth/:provider", HandleOAuth)
+	request := httptest.NewRequest(http.MethodGet, "/api/oauth/auth-flow-test?state="+token+"&code=test", nil)
+	response := httptest.NewRecorder()
+	router.ServeHTTP(response, request)
+
+	assert.Equal(t, http.StatusOK, response.Code)
+	assert.Contains(t, response.Body.String(), "Your account is awaiting administrator approval")
+	assert.Empty(t, response.Header().Values("Set-Cookie"))
+	var user model.User
+	require.NoError(t, model.DB.Where("username = ?", "flow_1").First(&user).Error)
+	assert.Equal(t, common.UserStatusPendingApproval, user.Status)
+	var sessionCount int64
+	require.NoError(t, model.DB.Model(&model.UserSession{}).Where("user_id = ?", user.Id).Count(&sessionCount).Error)
+	assert.Zero(t, sessionCount)
+}
+
 func TestOAuthLoginConsumesFlowOnlyAfterProviderIdentity(t *testing.T) {
 	provider := setupAuthFlowControllerTest(t)
 

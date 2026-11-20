@@ -86,6 +86,9 @@ func WeChatAuth(c *gin.Context) {
 			user.DisplayName = "WeChat User"
 			user.Role = common.RoleCommonUser
 			user.Status = common.UserStatusEnabled
+			if common.OAuthRegistrationApprovalEnabled {
+				user.Status = common.UserStatusPendingApproval
+			}
 
 			if err := user.Insert(0); err != nil {
 				common.ApiError(c, err)
@@ -97,6 +100,10 @@ func WeChatAuth(c *gin.Context) {
 		}
 	}
 
+	if user.Status == common.UserStatusPendingApproval {
+		common.ApiErrorT(c, "Your account is awaiting administrator approval")
+		return
+	}
 	if user.Status != common.UserStatusEnabled {
 		common.ApiErrorT(c, "User has been banned")
 		return

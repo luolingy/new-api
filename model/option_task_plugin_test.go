@@ -18,6 +18,23 @@ import (
 	"gorm.io/gorm/schema"
 )
 
+func TestOAuthRegistrationApprovalOptionUpdatesRuntimeValue(t *testing.T) {
+	previousApproval := common.OAuthRegistrationApprovalEnabled
+	previousOptions := common.OptionMap
+	common.OptionMap = make(map[string]string)
+	t.Cleanup(func() {
+		common.OAuthRegistrationApprovalEnabled = previousApproval
+		common.OptionMap = previousOptions
+	})
+
+	require.NoError(t, updateOptionMap("OAuthRegistrationApprovalEnabled", "true"))
+	assert.True(t, common.OAuthRegistrationApprovalEnabled)
+	assert.Equal(t, "true", common.OptionMap["OAuthRegistrationApprovalEnabled"])
+
+	require.NoError(t, updateOptionMap("OAuthRegistrationApprovalEnabled", "false"))
+	assert.False(t, common.OAuthRegistrationApprovalEnabled)
+}
+
 func TestTaskPluginEnabledOptionUpdatesRegistry(t *testing.T) {
 	originalEnabled := constant.TaskPluginEnabled
 	originalMap := common.OptionMap

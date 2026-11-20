@@ -59,7 +59,11 @@ const USER_SORTABLE_COLUMNS = new Set<UserSortBy>([
 ])
 
 function isDisabledUserRow(user: User) {
-  return isUserDeleted(user) || user.status === USER_STATUS.DISABLED
+  return (
+    isUserDeleted(user) ||
+    user.status === USER_STATUS.DISABLED ||
+    user.status === USER_STATUS.PENDING_APPROVAL
+  )
 }
 
 export function UsersTable() {
