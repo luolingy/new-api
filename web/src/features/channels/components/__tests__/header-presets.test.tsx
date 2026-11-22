@@ -51,7 +51,10 @@ describe('header identity presets', () => {
   })
 
   test.each([
-    ['DeepSeek Harness', 'DeepSeek Harness'],
+    [
+      'DeepSeek Harness',
+      'deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)',
+    ],
     ['OpenCode', 'opencode'],
   ])(
     '%s selection adds only an editable User-Agent identity',
@@ -103,10 +106,15 @@ describe('header identity presets', () => {
     expect(
       JSON.parse(
         mergeHeaderPreset('{"originator":"custom"}', {
-          'User-Agent': 'DeepSeek Harness',
+          'User-Agent':
+            'deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)',
         })
       )
-    ).toEqual({ originator: 'custom', 'User-Agent': 'DeepSeek Harness' })
+    ).toEqual({
+      originator: 'custom',
+      'User-Agent':
+        'deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)',
+    })
   })
 
   test('locked editor disables every preset', () => {

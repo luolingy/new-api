@@ -207,6 +207,36 @@ func TestProcessHeaderOverride_PassHeadersTemplateSetsRuntimeHeaders(t *testing.
 	require.Empty(t, upstreamReq.Header.Get("X-Codex-Beta-Features"))
 }
 
+func TestApplyHeaderOverride_ChannelTestUsesChannelHeadersForTestRequest(t *testing.T) {
+	t.Parallel()
+
+	gin.SetMode(gin.TestMode)
+	ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+	ctx.Request = httptest.NewRequest(http.MethodPost, "/v1/chat/completions", nil)
+	ctx.Request.Header.Set("X-Client-Trace", "client-trace")
+
+	info := &relaycommon.RelayInfo{
+		IsChannelTest: true,
+		ChannelMeta: &relaycommon.ChannelMeta{
+			ApiKey: "channel-secret",
+			HeadersOverride: map[string]any{
+				"User-Agent":            "deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)",
+				"X-Channel-Test-Key":    "{api_key}",
+				"X-Client-Trace-Target": "{client_header:X-Client-Trace}",
+				"*":                     "",
+			},
+		},
+	}
+	upstreamReq := httptest.NewRequest(http.MethodPost, "https://example.com/v1/chat/completions", nil)
+	upstreamReq.Header.Set("User-Agent", "adaptor-default")
+
+	require.NoError(t, ApplyHeaderOverride(info, ctx, upstreamReq))
+	assert.Equal(t, "deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)", upstreamReq.Header.Get("User-Agent"))
+	assert.Equal(t, "channel-secret", upstreamReq.Header.Get("X-Channel-Test-Key"))
+	assert.Empty(t, upstreamReq.Header.Get("X-Client-Trace-Target"), "test requests must not interpolate client-supplied headers")
+	assert.Empty(t, upstreamReq.Header.Get("X-Client-Trace"), "test requests must not pass through client headers")
+}
+
 func TestToWebSocketURL(t *testing.T) {
 	for input, want := range map[string]string{
 		"https://api.openai.com/v1/responses":             "wss://api.openai.com/v1/responses",

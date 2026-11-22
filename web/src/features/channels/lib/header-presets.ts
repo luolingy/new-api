@@ -18,7 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { getHeaderPassthroughState } from './header-passthrough'
 
-// Editable identity templates, without credentials or version claims.
+// Mirrors DSH @deepseek-ai/dsh-llm attributionHeaders() at version 0.2.3-alpha.1.
 // Codex originator is also used by relay/channel/codex/adaptor.go.
 export const HEADER_PRESETS: {
   name: string
@@ -28,7 +28,13 @@ export const HEADER_PRESETS: {
     name: 'Codex',
     headers: { 'User-Agent': 'codex_cli_rs', originator: 'codex_cli_rs' },
   },
-  { name: 'DeepSeek Harness', headers: { 'User-Agent': 'DeepSeek Harness' } },
+  {
+    name: 'DeepSeek Harness',
+    headers: {
+      'User-Agent':
+        'deepseek-harness/0.2.3-alpha.1 (+https://github.com/deepseek-ai/deepseek-harness)',
+    },
+  },
   { name: 'OpenCode', headers: { 'User-Agent': 'opencode' } },
 ]
 
